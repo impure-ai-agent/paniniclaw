@@ -8,6 +8,7 @@ HOME_DIR="/home/${USER_NAME}"
 APP_DIR="${HOME_DIR}/paniniclaw"
 REPO_URL="https://github.com/impure/paniniclaw.git"
 SERVICE_NAME="paniniclaw.service"
+BINARY_NAME="paniniclaw"
 
 SECRETS_FILE="${APP_DIR}/secrets.json"
 
