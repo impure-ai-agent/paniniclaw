@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-
 USER_NAME="paniniclaw"
 HOME_DIR="/home/${USER_NAME}"
 APP_DIR="${HOME_DIR}/paniniclaw"
@@ -48,8 +46,8 @@ echo "==> Building PaniniClaw"
 
 sudo -u "$USER_NAME" bash -c "
     cd $APP_DIR
-    /usr/local/go/bin/go mod download
-    /usr/local/go/bin/go build -o $BINARY_NAME .
+    go mod download
+    go build -o $BINARY_NAME .
 "
 
 chmod +x "$APP_DIR/$BINARY_NAME"
