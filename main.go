@@ -1,15 +1,23 @@
 package main
 
 import (
+	"PanoptiClaw/integrations"
+	"PanoptiClaw/utils"
 	"log"
-
-	"github.com/pocketbase/pocketbase"
 )
 
 func main() {
-	app := pocketbase.New()
-
-	if err := app.Start(); err != nil {
+	secrets, err := utils.LoadSecrets()
+	if err != nil {
 		log.Fatal(err)
 	}
+
+	telegram, err := integrations.NewTelegram(
+		secrets.TelegramBotToken,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Fatal(telegram.Listen())
 }
