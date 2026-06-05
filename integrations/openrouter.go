@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 )
 
 type OpenRouter struct {
@@ -38,9 +39,19 @@ type chatResponse struct {
 }
 
 func (o *OpenRouter) Chat(prompt string) (string, error) {
+
+	soulBytes, err := os.ReadFile("soul.md")
+	if err != nil {
+		return "", err
+	}
+
 	reqBody := chatRequest{
 		Model: o.model,
 		Messages: []chatMessage{
+			{
+				Role:    "system",
+				Content: string(soulBytes),
+			},
 			{
 				Role:    "user",
 				Content: prompt,
