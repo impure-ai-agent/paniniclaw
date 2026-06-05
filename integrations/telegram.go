@@ -1,6 +1,8 @@
 package integrations
 
 import (
+	"time"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -35,8 +37,12 @@ func (t *Telegram) Listen() error {
 			continue
 		}
 
-		response, err := t.openRouter.Chat(
-			update.Message.Text,
+		response, err := WithTyping(
+			t.bot,
+			update.Message.Chat.ID,
+			func() (string, error) {
+				return t.openRouter.Chat(update.Message.Text)
+			},
 		)
 
 		if err != nil {
@@ -52,4 +58,37 @@ func (t *Telegram) Listen() error {
 	}
 
 	return nil
+}
+
+// TODO: figure out why typing indicators aren't working
+func WithTyping[T any](
+	bot *tgbotapi.BotAPI,
+	chatID int64,
+	fn func() (T, error),
+) (T, error) {
+
+	_, _ = bot.Request(
+		tgbotapi.NewChatAction(chatID, tgbotapi.ChatTyping),
+	)
+
+	done := make(chan struct{})
+	defer close(done)
+
+	go func() {
+		ticker := time.NewTicker(4 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				_, _ = bot.Request(
+					tgbotapi.NewChatAction(chatID, tgbotapi.ChatTyping),
+				)
+			}
+		}
+	}()
+
+	return fn()
 }
