@@ -8,17 +8,17 @@ Group            = paniniclaw
 LimitNOFILE      = 4096
 Restart          = on-failure
 RestartSec       = 5s
-StandardOutput   = append:/paniniclaw/paniniclaw/std.log
-StandardError    = append:/paniniclaw/paniniclaw/std.log
-WorkingDirectory = /paniniclaw/paniniclaw
-ExecStart        = /paniniclaw/paniniclaw/pocketbase serve
-LoadCredential   = config:/paniniclaw/paniniclaw/secrets/config.json
+StandardOutput   = append:/home/paniniclaw/paniniclaw/std.log
+StandardError    = append:/home/paniniclaw/paniniclaw/std.log
+WorkingDirectory = /home/paniniclaw/paniniclaw
+ExecStart        = /home/paniniclaw/paniniclaw/pocketbase serve
+LoadCredential   = config:/home/paniniclaw/paniniclaw/secrets.json
 
 # Optional hardening
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
-#ReadWritePaths=/paniniclaw/paniniclaw
+#ReadWritePaths=/home/paniniclaw/paniniclaw
 
 [Install]
 WantedBy = multi-user.target
