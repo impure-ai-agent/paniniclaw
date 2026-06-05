@@ -1,24 +1,24 @@
 [Unit]
-Description = panopticlaw
+Description = paniniclaw
 
 [Service]
 Type             = simple
-User             = panopticlaw_agent
-Group            = panopticlaw_agent
+User             = paniniclaw
+Group            = paniniclaw
 LimitNOFILE      = 4096
 Restart          = on-failure
 RestartSec       = 5s
-StandardOutput   = append:/panopticlaw_agent/panopticlaw/std.log
-StandardError    = append:/panopticlaw_agent/panopticlaw/std.log
-WorkingDirectory = /panopticlaw_agent/panopticlaw
-ExecStart        = /panopticlaw_agent/panopticlaw/pocketbase serve
-LoadCredential   = config:/opt/panopticlaw/secrets/config.json
+StandardOutput   = append:/paniniclaw/paniniclaw/std.log
+StandardError    = append:/paniniclaw/paniniclaw/std.log
+WorkingDirectory = /paniniclaw/paniniclaw
+ExecStart        = /paniniclaw/paniniclaw/pocketbase serve
+LoadCredential   = config:/paniniclaw/paniniclaw/secrets/config.json
 
 # Optional hardening
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
-#ReadWritePaths=/opt/panopticlaw
+#ReadWritePaths=/paniniclaw/paniniclaw
 
 [Install]
 WantedBy = multi-user.target
