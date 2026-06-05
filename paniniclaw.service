@@ -11,7 +11,7 @@ RestartSec       = 5s
 StandardOutput   = append:/home/paniniclaw/paniniclaw/std.log
 StandardError    = append:/home/paniniclaw/paniniclaw/std.log
 WorkingDirectory = /home/paniniclaw/paniniclaw
-ExecStart        = /home/paniniclaw/paniniclaw serve
+ExecStart        = /home/paniniclaw/paniniclaw/paniniclaw serve
 LoadCredential   = config:/home/paniniclaw/paniniclaw/secrets.json
 
 # Optional hardening

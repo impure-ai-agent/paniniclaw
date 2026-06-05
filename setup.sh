@@ -41,6 +41,19 @@ else
 fi
 
 # -----------------------------
+# Build Go binary
+# -----------------------------
+echo "==> Building PaniniClaw"
+
+sudo -u "$USER_NAME" bash -c "
+    cd $APP_DIR
+    /usr/local/go/bin/go mod download
+    /usr/local/go/bin/go build -o $BINARY_NAME .
+"
+
+chmod +x "$APP_DIR/$BINARY_NAME"
+
+# -----------------------------
 # Ensure secrets.json exists
 # -----------------------------
 if [ ! -f "$SECRETS_FILE" ]; then
