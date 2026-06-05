@@ -5,17 +5,22 @@ import (
 )
 
 type Telegram struct {
-	bot *tgbotapi.BotAPI
+	bot        *tgbotapi.BotAPI
+	openRouter *OpenRouter
 }
 
-func NewTelegram(token string) (*Telegram, error) {
+func NewTelegram(
+	token string,
+	openRouter *OpenRouter,
+) (*Telegram, error) {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Telegram{
-		bot: bot,
+		bot:        bot,
+		openRouter: openRouter,
 	}, nil
 }
 
@@ -30,9 +35,17 @@ func (t *Telegram) Listen() error {
 			continue
 		}
 
+		response, err := t.openRouter.Chat(
+			update.Message.Text,
+		)
+
+		if err != nil {
+			response = "Error: " + err.Error()
+		}
+
 		msg := tgbotapi.NewMessage(
 			update.Message.Chat.ID,
-			"hi",
+			response,
 		)
 
 		t.bot.Send(msg)

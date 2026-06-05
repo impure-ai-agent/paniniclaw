@@ -12,8 +12,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	openRouter := integrations.NewOpenRouter(
+		secrets.OpenRouterAPIKey,
+	)
+
 	telegram, err := integrations.NewTelegram(
 		secrets.TelegramBotToken,
+		openRouter,
 	)
 	if err != nil {
 		log.Fatal(err)
