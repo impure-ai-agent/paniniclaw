@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-USER_NAME="panopticlaw_agent"
+USER_NAME="paniniclaw_agent"
 HOME_DIR="/home/${USER_NAME}"
-APP_DIR="${HOME_DIR}/PanoptiClaw"
+APP_DIR="${HOME_DIR}/paniniclaw"
 REPO_URL="https://github.com/impure/PanoptiClaw.git"
-SERVICE_NAME="panopticlaw.service"
+SERVICE_NAME="paniniclaw.service"
 
 if ! id "$USER_NAME" >/dev/null 2>&1; then
     useradd \
@@ -27,7 +27,7 @@ else
 fi
 
 cp \
-    "$APP_DIR/panopticlaw.service" \
+    "$APP_DIR/paniniclaw.service" \
     "/etc/systemd/system/$SERVICE_NAME"
 
 chmod 644 "/etc/systemd/system/$SERVICE_NAME"
