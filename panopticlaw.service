@@ -1,0 +1,24 @@
+[Unit]
+Description = panopticlaw
+
+[Service]
+Type             = simple
+User             = panopticlaw_agent
+Group            = panopticlaw_agent
+LimitNOFILE      = 4096
+Restart          = on-failure
+RestartSec       = 5s
+StandardOutput   = append:/panopticlaw_agent/panopticlaw/std.log
+StandardError    = append:/panopticlaw_agent/panopticlaw/std.log
+WorkingDirectory = /panopticlaw_agent/panopticlaw
+ExecStart        = /panopticlaw_agent/panopticlaw/pocketbase serve
+LoadCredential   = config:/opt/panopticlaw/secrets/config.json
+
+# Optional hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+#ReadWritePaths=/opt/panopticlaw
+
+[Install]
+WantedBy = multi-user.target
