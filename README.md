@@ -1,5 +1,4 @@
-# PaniniClaw
-## Because PocketClaw Was Already Taken
+# PaniniClaw - Because PocketClaw Was Already Taken
 A claw app built on PocketBase.
 
 ## Installation
