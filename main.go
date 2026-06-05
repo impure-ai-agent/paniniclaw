@@ -1,9 +1,9 @@
 package main
 
 import (
-	"PanoptiClaw/integrations"
-	"PanoptiClaw/utils"
 	"log"
+	"paniniclaw/integrations"
+	"paniniclaw/utils"
 )
 
 func main() {

@@ -1,4 +1,4 @@
-module PanoptiClaw
+module paniniclaw
 
 go 1.25.0
 
