@@ -45,8 +45,8 @@ echo "==> Building PaniniClaw"
 
 sudo -u "$USER_NAME" bash -c "
     cd $APP_DIR
-    go mod download
-    go build -o paniniclaw .
+    /usr/local/go/bin/go mod download
+    /usr/local/go/bin/go build -o paniniclaw .
 "
 
 chmod +x "$APP_DIR/paniniclaw"
