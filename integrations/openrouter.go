@@ -64,6 +64,7 @@ func (o *OpenRouter) Chat(prompt string) (string, error) {
 
 	req.Header.Set("Authorization", "Bearer "+o.apiKey)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-OpenRouter-Title", "PaniniClaw")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
