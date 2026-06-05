@@ -6,7 +6,6 @@ HOME_DIR="/home/${USER_NAME}"
 APP_DIR="${HOME_DIR}/paniniclaw"
 REPO_URL="https://github.com/impure/paniniclaw.git"
 SERVICE_NAME="paniniclaw.service"
-BINARY_NAME="paniniclaw"
 
 SECRETS_FILE="${APP_DIR}/secrets.json"
 
@@ -47,10 +46,10 @@ echo "==> Building PaniniClaw"
 sudo -u "$USER_NAME" bash -c "
     cd $APP_DIR
     go mod download
-    go build -o $BINARY_NAME .
+    go build -o paniniclaw .
 "
 
-chmod +x "$APP_DIR/$BINARY_NAME"
+chmod +x "$APP_DIR/paniniclaw"
 
 # -----------------------------
 # Ensure secrets.json exists
