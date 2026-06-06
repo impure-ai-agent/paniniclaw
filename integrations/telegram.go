@@ -1,6 +1,7 @@
 package integrations
 
 import (
+	"paniniclaw/utils"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -8,11 +9,13 @@ import (
 
 type Telegram struct {
 	bot        *tgbotapi.BotAPI
+	db         *utils.Database
 	openRouter *OpenRouter
 }
 
 func NewTelegram(
 	token string,
+	db *utils.Database,
 	openRouter *OpenRouter,
 ) (*Telegram, error) {
 	bot, err := tgbotapi.NewBotAPI(token)
@@ -22,6 +25,7 @@ func NewTelegram(
 
 	return &Telegram{
 		bot:        bot,
+		db:         db,
 		openRouter: openRouter,
 	}, nil
 }
