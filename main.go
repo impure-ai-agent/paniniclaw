@@ -17,6 +17,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	_, traceError := utils.CreateUserStore("data/users.json")
+	if traceError != nil {
+		log.Fatal(traceError.Err)
+	}
+
 	openRouter := integrations.NewOpenRouter(
 		secrets.OpenRouterAPIKey,
 	)

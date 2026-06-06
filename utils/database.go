@@ -42,6 +42,7 @@ func (d *Database) migrate() error {
 
 			name TEXT NOT NULL,
 			role TEXT NOT NULL,
+			notes TEXT NOT NULL DEFAULT '',
 
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
