@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 )
@@ -40,25 +41,32 @@ func CreateUserStore(path string) (*UserStore, *TraceError) {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return nil, Wrap(err)
 	}
-	bytes, err := os.ReadFile(path)
 
+	_, err := os.Stat(path)
 	if err == nil {
+		bytes, err := os.ReadFile(path)
 
-		var data UsersFile
+		if err == nil {
 
-		if err := json.Unmarshal(
-			bytes,
-			&data,
-		); err != nil {
+			var data UsersFile
+
+			if err := json.Unmarshal(
+				bytes,
+				&data,
+			); err != nil {
+				return nil, Wrap(err)
+			}
+
+			return &UserStore{
+				path: path,
+				data: data,
+			}, nil
+
+		} else {
 			return nil, Wrap(err)
 		}
 
-		return &UserStore{
-			path: path,
-			data: data,
-		}, nil
-
-	} else {
+	} else if errors.Is(err, os.ErrNotExist) {
 
 		data := UsersFile{
 			Users: []User{},
@@ -73,6 +81,9 @@ func CreateUserStore(path string) (*UserStore, *TraceError) {
 		}
 
 		return &userStore, nil
+
+	} else {
+		return nil, Wrap(err)
 	}
 }
 
