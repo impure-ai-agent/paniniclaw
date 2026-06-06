@@ -67,7 +67,7 @@ func CreateUserStore(path string) (*UserStore, *TraceError) {
 			data: data,
 		}
 
-		if err := userStore.save(&data); err != nil {
+		if err := userStore.save(); err != nil {
 			return nil, err
 		}
 
@@ -75,12 +75,10 @@ func CreateUserStore(path string) (*UserStore, *TraceError) {
 	}
 }
 
-func (s *UserStore) save(
-	data *UsersFile,
-) *TraceError {
+func (s *UserStore) save() *TraceError {
 
 	bytes, err := json.MarshalIndent(
-		data,
+		s.data,
 		"",
 		"\t",
 	)
@@ -94,4 +92,57 @@ func (s *UserStore) save(
 		bytes,
 		0644,
 	))
+}
+
+func (s *UserStore) OwnerExists() (
+	bool,
+	error,
+) {
+
+	for _, user := range s.data.Users {
+		if user.Role == RoleOwner {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (s *UserStore) CreateOwner(
+	name string,
+	telegramID int64,
+) *TraceError {
+
+	s.data.Users = append(
+		s.data.Users,
+		User{
+			Name: name,
+			Role: RoleOwner,
+			Connections: []Connection{
+				{
+					Provider: "telegram",
+					Data: map[string]any{
+						"id": telegramID,
+					},
+				},
+			},
+		},
+	)
+
+	return s.save()
+}
+
+func (s *UserStore) GetTelegramUser(id int64) (*User, error) {
+
+	for _, user := range s.data.Users {
+		for _, connection := range user.Connections {
+			if connection.Provider == "telegram" {
+				if connection.Data["id"] == id {
+					return &user, nil
+				}
+			}
+		}
+	}
+
+	return nil, nil
 }

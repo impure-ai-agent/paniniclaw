@@ -17,7 +17,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	_, traceError := utils.CreateUserStore("data/users.json")
+	userStore, traceError := utils.CreateUserStore("data/users.json")
 	if traceError != nil {
 		log.Fatal(traceError.Err)
 	}
@@ -29,6 +29,7 @@ func main() {
 	telegram, err := integrations.NewTelegram(
 		secrets.TelegramBotToken,
 		db,
+		userStore,
 		openRouter,
 	)
 	if err != nil {
