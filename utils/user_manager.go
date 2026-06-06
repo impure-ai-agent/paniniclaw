@@ -21,6 +21,7 @@ type Connection struct {
 }
 
 type User struct {
+	Id          int          `json:"id"`
 	Name        string       `json:"name"`
 	Role        Role         `json:"role"`
 	Connections []Connection `json:"connections"`
@@ -108,14 +109,34 @@ func (s *UserStore) OwnerExists() (
 	return false, nil
 }
 
+func getNextId(users []User) int {
+
+	candidateId := len(users)
+	for {
+		startCandiateId := candidateId
+		for _, user := range users {
+			if user.Id == candidateId {
+				candidateId = user.Id + 1
+			}
+		}
+		if startCandiateId == candidateId {
+			break
+		}
+	}
+	return candidateId
+}
+
 func (s *UserStore) CreateOwner(
 	name string,
 	telegramID int64,
 ) *TraceError {
 
+	candidateId := getNextId(s.data.Users)
+
 	s.data.Users = append(
 		s.data.Users,
 		User{
+			Id:   candidateId,
 			Name: name,
 			Role: RoleOwner,
 			Connections: []Connection{
