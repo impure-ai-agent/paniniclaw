@@ -29,7 +29,8 @@ type User struct {
 }
 
 type UsersFile struct {
-	Users []User `json:"users"`
+	NextId int    `json:"next_id"`
+	Users  []User `json:"users"`
 }
 type UserStore struct {
 	path string
@@ -69,7 +70,8 @@ func CreateUserStore(path string) (*UserStore, *TraceError) {
 	} else if errors.Is(err, os.ErrNotExist) {
 
 		data := UsersFile{
-			Users: []User{},
+			NextId: 0,
+			Users:  []User{},
 		}
 		userStore := UserStore{
 			path: path,
@@ -142,12 +144,13 @@ func (s *UserStore) CreateOwner(
 	telegramID int64,
 ) *TraceError {
 
-	candidateId := getNextId(s.data.Users)
+	id := s.data.NextId
+	s.data.NextId++
 
 	s.data.Users = append(
 		s.data.Users,
 		User{
-			Id:   candidateId,
+			Id:   id,
 			Name: name,
 			Role: RoleOwner,
 			Connections: []Connection{
