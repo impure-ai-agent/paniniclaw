@@ -39,9 +39,9 @@ type chatResponse struct {
 	} `json:"choices"`
 }
 
-func (o *OpenRouter) ChatFromPrompt(prompt string) (string, error) {
+func (o *OpenRouter) ChatFromPrompt(prompt string, user utils.User) (string, error) {
 
-	systemMessage, err := makeSystemMessage()
+	systemMessage, err := makeSystemMessage(user)
 	if err != nil {
 		return "", err
 	}
@@ -60,7 +60,7 @@ func (o *OpenRouter) ChatFromPrompt(prompt string) (string, error) {
 	return o.rawChat(reqBody)
 }
 
-func makeSystemMessage() (chatMessage, error) {
+func makeSystemMessage(user utils.User) (chatMessage, error) {
 	soulBytes, err := os.ReadFile("directives/soul.md")
 	if err != nil {
 		return chatMessage{}, err
@@ -71,15 +71,20 @@ func makeSystemMessage() (chatMessage, error) {
 		return chatMessage{}, err
 	}
 
+	userJson, err := user.MakeJson()
+	if err != nil {
+		return chatMessage{}, err
+	}
+
 	return chatMessage{
 		Role:    "system",
-		Content: fmt.Sprintf("directives/soul.md: %s\n\ndirectives/telegram.md: %s", soulBytes, telegramBytes),
+		Content: fmt.Sprintf("directives/soul.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s", soulBytes, telegramBytes, userJson),
 	}, nil
 }
 
-func (o *OpenRouter) ChatFromMessages(messages []utils.Message) (string, error) {
+func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User) (string, error) {
 
-	systemMessage, err := makeSystemMessage()
+	systemMessage, err := makeSystemMessage(user)
 	if err != nil {
 		return "", err
 	}

@@ -37,6 +37,18 @@ type UserStore struct {
 	data UsersFile
 }
 
+func (u *User) MakeJson() (string, error) {
+	b, err := json.MarshalIndent(
+		u,
+		"",
+		"\t",
+	)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
 func CreateUserStore(path string) (*UserStore, *TraceError) {
 
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
