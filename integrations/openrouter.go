@@ -61,7 +61,7 @@ func (o *OpenRouter) ChatFromPrompt(prompt string, user utils.User) (string, err
 }
 
 func makeSystemMessage(user utils.User) (chatMessage, error) {
-	soulBytes, err := os.ReadFile("directives/soul.md")
+	soulBytes, err := os.ReadFile("directives/core.md")
 	if err != nil {
 		return chatMessage{}, err
 	}
@@ -78,7 +78,7 @@ func makeSystemMessage(user utils.User) (chatMessage, error) {
 
 	return chatMessage{
 		Role:    "system",
-		Content: fmt.Sprintf("directives/soul.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s", soulBytes, telegramBytes, userJson),
+		Content: fmt.Sprintf("directives/core.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s", soulBytes, telegramBytes, userJson),
 	}, nil
 }
 
