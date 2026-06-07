@@ -128,7 +128,7 @@ func (t *Telegram) Listen() error {
 	return nil
 }
 
-// TODO: figure out why typing indicators aren't working
+// Note: Telegram typing indicator is displayed at the top of the chat, not inline with the message.
 func WithTyping[T any](
 	bot *tgbotapi.BotAPI,
 	chatID int64,
