@@ -41,7 +41,12 @@ type chatResponse struct {
 
 func (o *OpenRouter) ChatFromPrompt(prompt string) (string, error) {
 
-	soulBytes, err := os.ReadFile("core_directives/telegram.md")
+	soulBytes, err := os.ReadFile("directives/soul.md")
+	if err != nil {
+		return "", err
+	}
+
+	telegramBytes, err := os.ReadFile("directives/telegram.md")
 	if err != nil {
 		return "", err
 	}
@@ -51,7 +56,7 @@ func (o *OpenRouter) ChatFromPrompt(prompt string) (string, error) {
 		Messages: []chatMessage{
 			{
 				Role:    "system",
-				Content: string(soulBytes),
+				Content: fmt.Sprintf("directives/soul.md: %s\n\ndirectives/telegram.md: %s", soulBytes, telegramBytes),
 			},
 			{
 				Role:    "user",
