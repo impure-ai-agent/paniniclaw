@@ -172,7 +172,7 @@ func (s *UserStore) GetTelegramUser(id int64) (*User, error) {
 	for _, user := range s.data.Users {
 		for _, connection := range user.Connections {
 			if connection.Provider == "telegram" {
-				if connection.Data["id"] == id {
+				if connection.Data["id"].(float64) == float64(id) {
 					return &user, nil
 				}
 			}
