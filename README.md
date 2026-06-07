@@ -1,5 +1,5 @@
-# PaniniClaw - Because PocketClaw Was Already Taken
-A claw app built on PocketBase.
+# PaniniClaw
+An AI assistant.
 
 ## Installing Go
 
