@@ -21,9 +21,15 @@ func NewOpenRouter(apiKey string) *OpenRouter {
 	}
 }
 
+type reasoningConfig struct {
+	Effort  string `json:"effort,omitempty"`
+	Exclude bool   `json:"exclude,omitempty"`
+}
+
 type chatRequest struct {
-	Model string        `json:"model"`
-	Input []chatMessage `json:"input"`
+	Model     string           `json:"model"`
+	Input     []chatMessage    `json:"input"`
+	Reasoning *reasoningConfig `json:"reasoning,omitempty"`
 }
 
 type chatMessage struct {
@@ -56,6 +62,10 @@ func (o *OpenRouter) ChatFromPrompt(prompt string, user utils.User) (string, err
 				Role:    "user",
 				Content: prompt,
 			},
+		},
+		Reasoning: &reasoningConfig{
+			Effort:  "none",
+			Exclude: true,
 		},
 	}
 
@@ -104,6 +114,10 @@ func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User)
 		Input: append([]chatMessage{
 			systemMessage,
 		}, chatMessages...),
+		Reasoning: &reasoningConfig{
+			Effort:  "none",
+			Exclude: true,
+		},
 	}
 
 	return o.rawChat(reqBody)
