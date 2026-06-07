@@ -63,7 +63,7 @@ func (o *OpenRouter) ChatFromPrompt(prompt string) (string, error) {
 	return o.rawChat(reqBody)
 }
 
-func (o *OpenRouter) ChatFromMessages(messages []utils.Message, prompt string) (string, error) {
+func (o *OpenRouter) ChatFromMessages(messages []utils.Message) (string, error) {
 
 	soulBytes, err := os.ReadFile("core_directives/telegram.md")
 	if err != nil {
@@ -87,14 +87,6 @@ func (o *OpenRouter) ChatFromMessages(messages []utils.Message, prompt string) (
 			},
 		}, chatMessages...),
 	}
-
-	reqBody.Messages = append(
-		reqBody.Messages,
-		chatMessage{
-			Role:    "user",
-			Content: prompt,
-		},
-	)
 
 	return o.rawChat(reqBody)
 }
