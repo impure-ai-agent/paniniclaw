@@ -71,11 +71,13 @@ func (t *Telegram) Listen() error {
 					update.Message.Chat.ID,
 					"You've been registered as the owner. You can now chat normally.",
 				))
+				println("Set up user")
 			} else {
 				t.bot.Send(tgbotapi.NewMessage(
 					update.Message.Chat.ID,
 					"You're not registered. Please enter the setup key.",
 				))
+				println("Unregistered user")
 			}
 			continue
 		}

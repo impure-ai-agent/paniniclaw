@@ -98,6 +98,8 @@ func (o *OpenRouter) rawChat(prompt chatRequest) (string, error) {
 		return "", err
 	}
 
+	println("Making request: ", string(body))
+
 	req, err := http.NewRequest(
 		"POST",
 		"https://openrouter.ai/api/v1/chat/completions",
