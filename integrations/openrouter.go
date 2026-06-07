@@ -22,8 +22,8 @@ func NewOpenRouter(apiKey string) *OpenRouter {
 }
 
 type reasoningConfig struct {
-	Effort  string `json:"effort,omitempty"`
-	Exclude bool   `json:"exclude,omitempty"`
+	Effort string `json:"effort,omitempty"`
+	//Exclude bool   `json:"exclude,omitempty"`
 }
 
 type chatRequest struct {
@@ -65,8 +65,8 @@ func (o *OpenRouter) ChatFromPrompt(prompt string, user utils.User) (string, err
 			},
 		},
 		Reasoning: &reasoningConfig{
-			Effort:  "none",
-			Exclude: true,
+			Effort: "none",
+			//Exclude: true,
 		},
 		MaxTokens: 10_000,
 	}
@@ -117,8 +117,8 @@ func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User)
 			systemMessage,
 		}, chatMessages...),
 		Reasoning: &reasoningConfig{
-			Effort:  "none",
-			Exclude: true,
+			Effort: "none",
+			//Exclude: true,
 		},
 		MaxTokens: 10_000,
 	}
