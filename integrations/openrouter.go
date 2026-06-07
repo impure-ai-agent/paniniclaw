@@ -41,12 +41,7 @@ type chatResponse struct {
 
 func (o *OpenRouter) ChatFromPrompt(prompt string) (string, error) {
 
-	soulBytes, err := os.ReadFile("directives/soul.md")
-	if err != nil {
-		return "", err
-	}
-
-	telegramBytes, err := os.ReadFile("directives/telegram.md")
+	systemMessage, err := makeSystemMessage()
 	if err != nil {
 		return "", err
 	}
@@ -54,10 +49,7 @@ func (o *OpenRouter) ChatFromPrompt(prompt string) (string, error) {
 	reqBody := chatRequest{
 		Model: o.model,
 		Messages: []chatMessage{
-			{
-				Role:    "system",
-				Content: fmt.Sprintf("directives/soul.md: %s\n\ndirectives/telegram.md: %s", soulBytes, telegramBytes),
-			},
+			systemMessage,
 			{
 				Role:    "user",
 				Content: prompt,
@@ -68,9 +60,26 @@ func (o *OpenRouter) ChatFromPrompt(prompt string) (string, error) {
 	return o.rawChat(reqBody)
 }
 
+func makeSystemMessage() (chatMessage, error) {
+	soulBytes, err := os.ReadFile("directives/soul.md")
+	if err != nil {
+		return chatMessage{}, err
+	}
+
+	telegramBytes, err := os.ReadFile("directives/telegram.md")
+	if err != nil {
+		return chatMessage{}, err
+	}
+
+	return chatMessage{
+		Role:    "system",
+		Content: fmt.Sprintf("directives/soul.md: %s\n\ndirectives/telegram.md: %s", soulBytes, telegramBytes),
+	}, nil
+}
+
 func (o *OpenRouter) ChatFromMessages(messages []utils.Message) (string, error) {
 
-	soulBytes, err := os.ReadFile("core_directives/telegram.md")
+	systemMessage, err := makeSystemMessage()
 	if err != nil {
 		return "", err
 	}
@@ -86,10 +95,7 @@ func (o *OpenRouter) ChatFromMessages(messages []utils.Message) (string, error) 
 	reqBody := chatRequest{
 		Model: o.model,
 		Messages: append([]chatMessage{
-			{
-				Role:    "system",
-				Content: string(soulBytes),
-			},
+			systemMessage,
 		}, chatMessages...),
 	}
 
