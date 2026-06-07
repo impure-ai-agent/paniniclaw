@@ -30,6 +30,7 @@ type chatRequest struct {
 	Model     string           `json:"model"`
 	Input     []chatMessage    `json:"input"`
 	Reasoning *reasoningConfig `json:"reasoning,omitempty"`
+	MaxTokens int              `json:"max_tokens,omitempty"`
 }
 
 type chatMessage struct {
@@ -67,6 +68,7 @@ func (o *OpenRouter) ChatFromPrompt(prompt string, user utils.User) (string, err
 			Effort:  "none",
 			Exclude: true,
 		},
+		MaxTokens: 10_000,
 	}
 
 	return o.rawChat(reqBody)
@@ -118,6 +120,7 @@ func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User)
 			Effort:  "none",
 			Exclude: true,
 		},
+		MaxTokens: 10_000,
 	}
 
 	return o.rawChat(reqBody)
