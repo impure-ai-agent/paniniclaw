@@ -22,8 +22,8 @@ func NewOpenRouter(apiKey string) *OpenRouter {
 }
 
 type chatRequest struct {
-	Model    string        `json:"model"`
-	Messages []chatMessage `json:"messages"`
+	Model string        `json:"model"`
+	Input []chatMessage `json:"input"`
 }
 
 type chatMessage struct {
@@ -32,11 +32,13 @@ type chatMessage struct {
 }
 
 type chatResponse struct {
-	Choices []struct {
-		Message struct {
-			Content string `json:"content"`
-		} `json:"message"`
-	} `json:"choices"`
+	Output []struct {
+		Type    string `json:"type"`
+		Content []struct {
+			Type string `json:"type"`
+			Text string `json:"text"`
+		} `json:"content"`
+	} `json:"output"`
 }
 
 func (o *OpenRouter) ChatFromPrompt(prompt string, user utils.User) (string, error) {
@@ -48,7 +50,7 @@ func (o *OpenRouter) ChatFromPrompt(prompt string, user utils.User) (string, err
 
 	reqBody := chatRequest{
 		Model: o.model,
-		Messages: []chatMessage{
+		Input: []chatMessage{
 			systemMessage,
 			{
 				Role:    "user",
@@ -99,7 +101,7 @@ func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User)
 
 	reqBody := chatRequest{
 		Model: o.model,
-		Messages: append([]chatMessage{
+		Input: append([]chatMessage{
 			systemMessage,
 		}, chatMessages...),
 	}
@@ -118,7 +120,7 @@ func (o *OpenRouter) rawChat(prompt chatRequest) (string, error) {
 
 	req, err := http.NewRequest(
 		"POST",
-		"https://openrouter.ai/api/v1/chat/completions",
+		"https://openrouter.ai/api/v1/responses",
 		bytes.NewReader(body),
 	)
 	if err != nil {
@@ -149,9 +151,20 @@ func (o *OpenRouter) rawChat(prompt chatRequest) (string, error) {
 	debugResponse, _ := json.MarshalIndent(result, "", "\t")
 	println("Got response:", string(debugResponse))
 
-	if len(result.Choices) == 0 {
-		return "", fmt.Errorf("no choices returned")
+	var textResponse string
+	for _, out := range result.Output {
+		if out.Type == "message" {
+			for _, content := range out.Content {
+				if content.Type == "output_text" {
+					textResponse = content.Text
+					break
+				}
+			}
+		}
+	}
+	if textResponse == "" {
+		return "", fmt.Errorf("no output_text found in response")
 	}
 
-	return result.Choices[0].Message.Content, nil
+	return textResponse, nil
 }
