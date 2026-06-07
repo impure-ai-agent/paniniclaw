@@ -146,6 +146,9 @@ func (o *OpenRouter) rawChat(prompt chatRequest) (string, error) {
 		return "", err
 	}
 
+	debugResponse, _ := json.MarshalIndent(result, "", "\t")
+	println("Got response:", string(debugResponse))
+
 	if len(result.Choices) == 0 {
 		return "", fmt.Errorf("no choices returned")
 	}
