@@ -71,15 +71,43 @@ func (t *Telegram) Listen() error {
 					update.Message.Chat.ID,
 					"You've been registered as the owner. You can now chat normally.",
 				))
+			} else {
+				t.bot.Send(tgbotapi.NewMessage(
+					update.Message.Chat.ID,
+					"You're not registered. Please enter the setup key.",
+				))
 			}
 			continue
 		}
+
+		t.db.AddMessage(
+			"telegram",
+			fmt.Sprintf("%d", update.Message.Chat.ID),
+			"user",
+			update.Message.Text,
+		)
 
 		response, err := WithTyping(
 			t.bot,
 			update.Message.Chat.ID,
 			func() (string, error) {
-				return t.openRouter.Chat(update.Message.Text)
+
+				history, err := t.db.GetRecentMessages(
+					"telegram",
+					fmt.Sprintf("%d", update.Message.Chat.ID),
+				)
+				if err != nil {
+					return "", err
+				}
+
+				response, err := t.openRouter.ChatFromMessages(history, update.Message.Text)
+				t.db.AddMessage(
+					"telegram",
+					fmt.Sprintf("%d", update.Message.Chat.ID),
+					"assistant",
+					response,
+				)
+				return response, err
 			},
 		)
 

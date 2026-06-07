@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"paniniclaw/utils"
 )
 
 type OpenRouter struct {
@@ -38,9 +39,9 @@ type chatResponse struct {
 	} `json:"choices"`
 }
 
-func (o *OpenRouter) Chat(prompt string) (string, error) {
+func (o *OpenRouter) ChatFromPrompt(prompt string) (string, error) {
 
-	soulBytes, err := os.ReadFile("soul.md")
+	soulBytes, err := os.ReadFile("core_directives/telegram.md")
 	if err != nil {
 		return "", err
 	}
@@ -59,7 +60,48 @@ func (o *OpenRouter) Chat(prompt string) (string, error) {
 		},
 	}
 
-	body, err := json.Marshal(reqBody)
+	return o.rawChat(reqBody)
+}
+
+func (o *OpenRouter) ChatFromMessages(messages []utils.Message, prompt string) (string, error) {
+
+	soulBytes, err := os.ReadFile("core_directives/telegram.md")
+	if err != nil {
+		return "", err
+	}
+
+	chatMessages := make([]chatMessage, len(messages))
+	for i, msg := range messages {
+		chatMessages[i] = chatMessage{
+			Role:    msg.Role,
+			Content: msg.Content,
+		}
+	}
+
+	reqBody := chatRequest{
+		Model: o.model,
+		Messages: append([]chatMessage{
+			{
+				Role:    "system",
+				Content: string(soulBytes),
+			},
+		}, chatMessages...),
+	}
+
+	reqBody.Messages = append(
+		reqBody.Messages,
+		chatMessage{
+			Role:    "user",
+			Content: prompt,
+		},
+	)
+
+	return o.rawChat(reqBody)
+}
+
+func (o *OpenRouter) rawChat(prompt chatRequest) (string, error) {
+
+	body, err := json.Marshal(prompt)
 	if err != nil {
 		return "", err
 	}
