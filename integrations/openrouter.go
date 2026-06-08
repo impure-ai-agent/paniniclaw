@@ -23,55 +23,45 @@ func NewOpenRouter(apiKey string) *OpenRouter {
 
 type reasoningConfig struct {
 	Effort string `json:"effort,omitempty"`
-	//Exclude bool   `json:"exclude,omitempty"`
 }
 
 type chatRequest struct {
 	Model     string           `json:"model"`
-	Input     []chatMessage    `json:"input"`
+	Messages  []chatMessage    `json:"messages"`
 	Reasoning *reasoningConfig `json:"reasoning,omitempty"`
 	MaxTokens int              `json:"max_tokens,omitempty"`
+	Tools     []Tool           `json:"tools,omitempty"`
 }
 
 type chatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role       string     `json:"role"`
+	Content    string     `json:"content,omitempty"`
+	Name       string     `json:"name,omitempty"`         // Used in tool calls
+	ToolCallID string     `json:"tool_call_id,omitempty"` // Used in tool calls
+	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
 }
 
 type chatResponse struct {
-	Output []struct {
-		Type    string `json:"type"`
-		Content []struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
-		} `json:"content"`
-	} `json:"output"`
+	Choices []struct {
+		Message chatMessage `json:"message"`
+	} `json:"choices"`
 }
 
 func (o *OpenRouter) ChatFromPrompt(prompt string, user utils.User) (string, error) {
-
 	systemMessage, err := makeSystemMessage(user)
 	if err != nil {
 		return "", err
 	}
 
-	reqBody := chatRequest{
-		Model: o.model,
-		Input: []chatMessage{
-			systemMessage,
-			{
-				Role:    "user",
-				Content: prompt,
-			},
+	messages := []chatMessage{
+		systemMessage,
+		{
+			Role:    "user",
+			Content: prompt,
 		},
-		Reasoning: &reasoningConfig{
-			Effort: "none",
-			//Exclude: true,
-		},
-		MaxTokens: 10_000,
 	}
 
-	return o.rawChat(reqBody)
+	return o.chatWithTools(messages)
 }
 
 func makeSystemMessage(user utils.User) (chatMessage, error) {
@@ -97,7 +87,6 @@ func makeSystemMessage(user utils.User) (chatMessage, error) {
 }
 
 func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User) (string, error) {
-
 	systemMessage, err := makeSystemMessage(user)
 	if err != nil {
 		return "", err
@@ -111,37 +100,85 @@ func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User)
 		}
 	}
 
-	reqBody := chatRequest{
-		Model: o.model,
-		Input: append([]chatMessage{
-			systemMessage,
-		}, chatMessages...),
-		Reasoning: &reasoningConfig{
-			Effort: "none",
-			//Exclude: true,
-		},
-		MaxTokens: 10_000,
-	}
-
-	return o.rawChat(reqBody)
+	allMessages := append([]chatMessage{systemMessage}, chatMessages...)
+	return o.chatWithTools(allMessages)
 }
 
-func (o *OpenRouter) rawChat(prompt chatRequest) (string, error) {
+func (o *OpenRouter) chatWithTools(messages []chatMessage) (string, error) {
+	const maxIterations = 5
+	for i := 0; i < maxIterations; i++ {
+		reqBody := chatRequest{
+			Model:    o.model,
+			Messages: messages,
+			Reasoning: &reasoningConfig{
+				Effort: "none",
+			},
+			MaxTokens: 10_000,
+			Tools:     []Tool{TerminalTool},
+		}
 
+		responseMsg, err := o.rawChat(reqBody)
+		if err != nil {
+			return "", err
+		}
+
+		// Append the assistant response message to context
+		messages = append(messages, responseMsg)
+
+		if len(responseMsg.ToolCalls) == 0 {
+			// No tools called, return the text content
+			return responseMsg.Content, nil
+		}
+
+		// Process tool calls
+		for _, toolCall := range responseMsg.ToolCalls {
+			if toolCall.Function.Name == "execute_command" {
+				var args ExecuteCommandArgs
+				if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
+					return "", fmt.Errorf("failed to parse tool arguments: %v", err)
+				}
+
+				println("Executing command for tool call:", args.Command)
+				output, err := ExecuteCommand(args.Command)
+				if err != nil {
+					output = fmt.Sprintf("Error: %v\nOutput: %s", err, output)
+				}
+
+				messages = append(messages, chatMessage{
+					Role:       "tool",
+					Name:       "execute_command",
+					ToolCallID: toolCall.ID,
+					Content:    output,
+				})
+			} else {
+				messages = append(messages, chatMessage{
+					Role:       "tool",
+					Name:       toolCall.Function.Name,
+					ToolCallID: toolCall.ID,
+					Content:    fmt.Sprintf("Error: Unknown tool %s", toolCall.Function.Name),
+				})
+			}
+		}
+	}
+
+	return "", fmt.Errorf("exceeded max tool call iterations limit (%d)", maxIterations)
+}
+
+func (o *OpenRouter) rawChat(prompt chatRequest) (chatMessage, error) {
 	body, err := json.Marshal(prompt)
 	if err != nil {
-		return "", err
+		return chatMessage{}, err
 	}
 
 	println("Making request: ", string(body))
 
 	req, err := http.NewRequest(
 		"POST",
-		"https://openrouter.ai/api/v1/responses",
+		"https://openrouter.ai/api/v1/chat/completions",
 		bytes.NewReader(body),
 	)
 	if err != nil {
-		return "", err
+		return chatMessage{}, err
 	}
 
 	req.Header.Set("Authorization", "Bearer "+o.apiKey)
@@ -151,37 +188,27 @@ func (o *OpenRouter) rawChat(prompt chatRequest) (string, error) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return chatMessage{}, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("openrouter returned %d", resp.StatusCode)
+		var errBody bytes.Buffer
+		_, _ = errBody.ReadFrom(resp.Body)
+		return chatMessage{}, fmt.Errorf("openrouter returned %d: %s", resp.StatusCode, errBody.String())
 	}
 
 	var result chatResponse
-
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", err
+		return chatMessage{}, err
 	}
 
 	debugResponse, _ := json.MarshalIndent(result, "", "\t")
 	println("Got response:", string(debugResponse))
 
-	var textResponse string
-	for _, out := range result.Output {
-		if out.Type == "message" {
-			for _, content := range out.Content {
-				if content.Type == "output_text" {
-					textResponse = content.Text
-					break
-				}
-			}
-		}
-	}
-	if textResponse == "" {
-		return "", fmt.Errorf("no output_text found in response")
+	if len(result.Choices) == 0 {
+		return chatMessage{}, fmt.Errorf("no choices returned in response")
 	}
 
-	return textResponse, nil
+	return result.Choices[0].Message, nil
 }
