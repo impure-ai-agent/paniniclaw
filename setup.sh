@@ -66,23 +66,6 @@ EOF
 fi
 
 # -----------------------------
-# Ensure required keys exist
-# (merge-style patch using jq if available, fallback otherwise)
-# -----------------------------
-if command -v jq >/dev/null 2>&1; then
-    TMP=$(mktemp)
-
-    jq '
-      .openrouter_api_key = (.openrouter_api_key // "")
-      | .telegram_bot_token = (.telegram_bot_token // "")
-    ' "$SECRETS_FILE" > "$TMP"
-
-    mv "$TMP" "$SECRETS_FILE"
-else
-    echo "==> jq not found, skipping merge step (install jq for best results)"
-fi
-
-# -----------------------------
 # Permissions
 # -----------------------------
 chown -R "$USER_NAME:$USER_NAME" "$APP_DIR"
