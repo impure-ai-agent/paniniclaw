@@ -65,6 +65,7 @@ func (t *Telegram) Listen() error {
 				t.userStore.CreateOwner(
 					update.Message.From.FirstName,
 					update.Message.From.ID,
+					update.Message.Chat.ID,
 				)
 				setupKey = ""
 				t.bot.Send(tgbotapi.NewMessage(

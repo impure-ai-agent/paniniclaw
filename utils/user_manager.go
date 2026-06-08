@@ -153,7 +153,8 @@ func getNextId(users []User) int {
 
 func (s *UserStore) CreateOwner(
 	name string,
-	telegramID int64,
+	telegramId int64,
+	chatId int64,
 ) *TraceError {
 
 	id := s.data.NextId
@@ -169,7 +170,8 @@ func (s *UserStore) CreateOwner(
 				{
 					Provider: "telegram",
 					Data: map[string]any{
-						"id": telegramID,
+						"user_id": telegramId,
+						"chat_id": chatId,
 					},
 				},
 			},
@@ -184,7 +186,7 @@ func (s *UserStore) GetTelegramUser(id int64) (*User, error) {
 	for _, user := range s.data.Users {
 		for _, connection := range user.Connections {
 			if connection.Provider == "telegram" {
-				if connection.Data["id"].(float64) == float64(id) {
+				if connection.Data["user_id"].(float64) == float64(id) {
 					return &user, nil
 				}
 			}
