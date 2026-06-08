@@ -14,3 +14,8 @@ Then run this script to install PaniniClaw on Debian
 su -
 curl -fsSL https://raw.githubusercontent.com/impure/paniniclaw/main/setup.sh | bash
 ```
+
+You will then have to populate the secrets.json file with your API keys and restart the service.
+```
+sudo systemctl restart paniniclaw
+```
