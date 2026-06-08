@@ -35,7 +35,7 @@ type chatRequest struct {
 
 type chatMessage struct {
 	Role       string     `json:"role"`
-	Content    string     `json:"content,omitempty"`
+	Content    string     `json:"content"`                // Cannot be empty for tool calls and some terminal commands have no output
 	Name       string     `json:"name,omitempty"`         // Used in tool calls
 	ToolCallID string     `json:"tool_call_id,omitempty"` // Used in tool calls
 	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
@@ -138,11 +138,12 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage) (string, error) {
 					return "", fmt.Errorf("failed to parse tool arguments: %v", err)
 				}
 
-				println("Executing command for tool call:", args.Command)
+				print("Executing command for tool call:", args.Command, ".")
 				output, err := ExecuteCommand(args.Command)
 				if err != nil {
 					output = fmt.Sprintf("Error: %v\nOutput: %s", err, output)
 				}
+				println("Output:", output)
 
 				messages = append(messages, chatMessage{
 					Role:       "tool",
