@@ -103,7 +103,7 @@ func (t *Telegram) Listen() error {
 					return "", err
 				}
 
-				response, err := t.openRouter.ChatFromMessages(history, *user)
+				response, err := t.openRouter.ChatFromMessages(history, *user, t.db, fmt.Sprintf("%d", update.Message.Chat.ID))
 				t.db.AddMessage(
 					"telegram",
 					fmt.Sprintf("%d", update.Message.Chat.ID),

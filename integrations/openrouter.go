@@ -47,23 +47,6 @@ type chatResponse struct {
 	} `json:"choices"`
 }
 
-func (o *OpenRouter) ChatFromPrompt(prompt string, user utils.User) (string, error) {
-	systemMessage, err := makeSystemMessage(user)
-	if err != nil {
-		return "", err
-	}
-
-	messages := []chatMessage{
-		systemMessage,
-		{
-			Role:    "user",
-			Content: prompt,
-		},
-	}
-
-	return o.chatWithTools(messages)
-}
-
 func makeSystemMessage(user utils.User) (chatMessage, error) {
 	soulBytes, err := os.ReadFile("directives/core.md")
 	if err != nil {
@@ -86,7 +69,7 @@ func makeSystemMessage(user utils.User) (chatMessage, error) {
 	}, nil
 }
 
-func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User) (string, error) {
+func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User, db *utils.Database, chatId string) (string, error) {
 	systemMessage, err := makeSystemMessage(user)
 	if err != nil {
 		return "", err
@@ -101,10 +84,10 @@ func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User)
 	}
 
 	allMessages := append([]chatMessage{systemMessage}, chatMessages...)
-	return o.chatWithTools(allMessages)
+	return o.chatWithTools(allMessages, db, chatId)
 }
 
-func (o *OpenRouter) chatWithTools(messages []chatMessage) (string, error) {
+func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, chatId string) (string, error) {
 	const maxIterations = 5
 	for i := 0; i < maxIterations; i++ {
 		reqBody := chatRequest{
