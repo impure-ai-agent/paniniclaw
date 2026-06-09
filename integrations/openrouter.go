@@ -78,8 +78,9 @@ func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User,
 	chatMessages := make([]chatMessage, len(messages))
 	for i, msg := range messages {
 		chatMessages[i] = chatMessage{
-			Role:    msg.Data["role"].(string),
-			Content: msg.Data["content"].(string),
+			Role:      msg.Data["role"].(string),
+			Content:   msg.Data["content"].(string),
+			ToolCalls: msg.Data["tool_calls"].([]ToolCall),
 		}
 	}
 
