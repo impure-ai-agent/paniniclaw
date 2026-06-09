@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"paniniclaw/utils"
+	"strconv"
 )
 
 type OpenRouter struct {
@@ -58,14 +60,31 @@ func makeSystemMessage(user utils.User) (chatMessage, error) {
 		return chatMessage{}, err
 	}
 
+	generalBytes, err := os.ReadFile("notes/general.md")
+	if err != nil {
+		return chatMessage{}, err
+	}
+
 	userJson, err := user.MakeJson()
+	if err != nil {
+		return chatMessage{}, err
+	}
+
+	// os.O_RDONLY - Open the file as read-only.
+	// os.O_CREATE - Create the file if it does not exist.
+	userNotesFile, err := os.OpenFile(fmt.Sprintf("notes/user%s.md", strconv.Itoa(user.Id)), os.O_RDONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return chatMessage{}, err
+	}
+	defer userNotesFile.Close()
+	userNotesBytes, err := io.ReadAll(userNotesFile)
 	if err != nil {
 		return chatMessage{}, err
 	}
 
 	return chatMessage{
 		Role:    "system",
-		Content: fmt.Sprintf("directives/core.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s", soulBytes, telegramBytes, userJson),
+		Content: fmt.Sprintf("directives/core.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s\n\nnotes/general.md: %s\n\nnotes/user%s.md: %s\n", soulBytes, telegramBytes, userJson, generalBytes, strconv.Itoa(user.Id), userNotesBytes),
 	}, nil
 }
 
