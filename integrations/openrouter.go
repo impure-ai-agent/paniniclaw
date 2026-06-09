@@ -78,8 +78,8 @@ func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User,
 	chatMessages := make([]chatMessage, len(messages))
 	for i, msg := range messages {
 		chatMessages[i] = chatMessage{
-			Role:    msg.Role,
-			Content: msg.Content,
+			Role:    msg.Data["role"].(string),
+			Content: msg.Data["content"].(string),
 		}
 	}
 
@@ -113,6 +113,18 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 			return responseMsg.Content, nil
 		}
 
+		msgJson, _ := json.Marshal(map[string]interface{}{
+			"role":       "assistant",
+			"content":    responseMsg.Content,
+			"tool_calls": responseMsg.ToolCalls,
+		})
+
+		db.AddMessage(
+			"telegram",
+			chatId,
+			string(msgJson),
+		)
+
 		// Process tool calls
 		for _, toolCall := range responseMsg.ToolCalls {
 			if toolCall.Function.Name == "execute_command" {
@@ -134,6 +146,18 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 					ToolCallID: toolCall.ID,
 					Content:    output,
 				})
+
+				toolJson, _ := json.Marshal(map[string]interface{}{
+					"role":    "tool",
+					"content": output,
+				})
+
+				db.AddMessage(
+					"telegram",
+					chatId,
+					string(toolJson),
+				)
+
 			} else {
 				messages = append(messages, chatMessage{
 					Role:       "tool",

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"database/sql"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"time"
@@ -44,8 +45,7 @@ func (d *Database) migrate() error {
 				provider TEXT NOT NULL,
 				conversation_id TEXT NOT NULL,
 
-				role TEXT NOT NULL,
-				content TEXT NOT NULL,
+				data TEXT NOT NULL,
 
 				created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
@@ -60,31 +60,27 @@ type Message struct {
 	Id             int64
 	Provider       string
 	ConversationId string
-	Role           string
-	Content        string
+	Data           map[string]interface{}
 	CreatedAt      time.Time
 }
 
 func (d *Database) AddMessage(
 	provider string,
 	conversationID string,
-	role string,
-	content string,
+	data string,
 ) error {
 
 	_, err := d.DB.Exec(`
 		INSERT INTO messages (
 			provider,
 			conversation_id,
-			role,
-			content
+			data
 		)
-		VALUES (?, ?, ?, ?)
+		VALUES (?, ?, ?)
 	`,
 		provider,
 		conversationID,
-		role,
-		content,
+		data,
 	)
 
 	return err
@@ -100,8 +96,7 @@ func (d *Database) GetRecentMessages(
 			id,
 			provider,
 			conversation_id,
-			role,
-			content,
+			data,
 			created_at
 		FROM messages
 		WHERE
@@ -122,17 +117,24 @@ func (d *Database) GetRecentMessages(
 
 	for rows.Next() {
 		var msg Message
+		var rawData []byte // Temp container for the database value
 
 		err := rows.Scan(
 			&msg.Id,
 			&msg.Provider,
 			&msg.ConversationId,
-			&msg.Role,
-			&msg.Content,
+			&rawData, // Scan bytes instead of the map
 			&msg.CreatedAt,
 		)
 		if err != nil {
 			return nil, err
+		}
+
+		// Unmarshal JSON bytes into the map if rawData is not empty
+		if len(rawData) > 0 {
+			if err := json.Unmarshal(rawData, &msg.Data); err != nil {
+				return nil, err
+			}
 		}
 
 		messages = append(messages, msg)
@@ -146,7 +148,7 @@ func (d *Database) GetRecentMessages(
 
 	for i := 1; i < len(messages); i++ {
 
-		if messages[i].Role == "user" {
+		if messages[i].Data["role"] == "user" {
 			gap := messages[i].CreatedAt.Sub(messages[i-1].CreatedAt)
 
 			if gap > 4*time.Hour {

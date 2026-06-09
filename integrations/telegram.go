@@ -1,6 +1,7 @@
 package integrations
 
 import (
+	"encoding/json"
 	"fmt"
 	"paniniclaw/utils"
 	"time"
@@ -83,11 +84,15 @@ func (t *Telegram) Listen() error {
 			continue
 		}
 
+		msgJson, _ := json.Marshal(map[string]interface{}{
+			"role":    "user",
+			"content": update.Message.Text,
+		})
+
 		t.db.AddMessage(
 			"telegram",
 			fmt.Sprintf("%d", update.Message.Chat.ID),
-			"user",
-			update.Message.Text,
+			string(msgJson),
 		)
 
 		response, err := WithTyping(
@@ -104,11 +109,16 @@ func (t *Telegram) Listen() error {
 				}
 
 				response, err := t.openRouter.ChatFromMessages(history, *user, t.db, fmt.Sprintf("%d", update.Message.Chat.ID))
+
+				msgJson, _ := json.Marshal(map[string]interface{}{
+					"role":    "assistant",
+					"content": response,
+				})
+
 				t.db.AddMessage(
 					"telegram",
 					fmt.Sprintf("%d", update.Message.Chat.ID),
-					"assistant",
-					response,
+					string(msgJson),
 				)
 				return response, err
 			},
