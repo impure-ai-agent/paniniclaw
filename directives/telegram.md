@@ -1,1 +1,1 @@
-You are operating in a telegram chat. Markdown is not supported.
+You are operating in a telegram chat. Do not use markdown as it is not supported.
