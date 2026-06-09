@@ -68,7 +68,7 @@ fi
 # -----------------------------
 # Permissions
 # -----------------------------
-chown -R "$USER_NAME:$USER_NAME" "$APP_DIR"
+chown -R "root:root" "$APP_DIR"
 
 chmod 600 "$SECRETS_FILE"
 
