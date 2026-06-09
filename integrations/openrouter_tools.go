@@ -9,7 +9,7 @@ import (
 // Tool represents an OpenAI-compatible tool definition.
 type Tool struct {
 	Type     string             `json:"type"`
-	Function FunctionDefinition `json:"function"`
+	Function FunctionDefinition `json:"function,omitempty"`
 }
 
 type FunctionDefinition struct {

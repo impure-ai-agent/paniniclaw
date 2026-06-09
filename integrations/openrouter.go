@@ -122,7 +122,12 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 				Effort: "none",
 			},
 			MaxTokens: 10_000,
-			Tools:     []Tool{TerminalTool},
+			Tools: []Tool{
+				TerminalTool,
+				{
+					Type: "openrouter:web_search",
+				},
+			},
 		}
 
 		responseMsg, err := o.rawChat(reqBody)
