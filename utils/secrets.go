@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 type Secrets struct {
@@ -12,8 +13,16 @@ type Secrets struct {
 }
 
 func LoadSecrets() (*Secrets, error) {
+	var secretsPath string
 
-	secretsPath := "secrets.json"
+	credentialDir := os.Getenv("CREDENTIALS_DIRECTORY")
+
+	if credentialDir != "" {
+		secretsPath = filepath.Join(credentialDir, "config")
+	} else {
+		// fallback for local development
+		secretsPath = "secrets.json"
+	}
 
 	data, err := os.ReadFile(secretsPath)
 	if err != nil {
