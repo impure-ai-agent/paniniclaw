@@ -85,10 +85,10 @@ func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User,
 	}
 
 	allMessages := append([]chatMessage{systemMessage}, chatMessages...)
-	return o.chatWithTools(allMessages, db, chatId)
+	return o.chatWithTools(allMessages, db, chatId, user)
 }
 
-func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, chatId string) (string, error) {
+func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, chatId string, user utils.User) (string, error) {
 	const maxIterations = 5
 	for i := 0; i < maxIterations; i++ {
 		reqBody := chatRequest{
@@ -112,6 +112,10 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 		if len(responseMsg.ToolCalls) == 0 {
 			// No tools called, return the text content
 			return responseMsg.Content, nil
+		}
+
+		if responseMsg.Content != "" {
+			sendMessageToPrimaryAccount(responseMsg.Content, user)
 		}
 
 		msgJson, _ := json.Marshal(map[string]interface{}{

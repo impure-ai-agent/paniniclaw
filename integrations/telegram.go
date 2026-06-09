@@ -18,6 +18,7 @@ type Telegram struct {
 }
 
 var setupKey string
+var primaryAccount *Telegram
 
 func NewTelegram(
 	token string,
@@ -36,12 +37,16 @@ func NewTelegram(
 		fmt.Println(setupKey)
 	}
 
-	return &Telegram{
-		bot:        bot,
-		db:         db,
-		userStore:  userStore,
-		openRouter: openRouter,
-	}, nil
+	if primaryAccount == nil {
+		primaryAccount = &Telegram{
+			bot:        bot,
+			db:         db,
+			userStore:  userStore,
+			openRouter: openRouter,
+		}
+	}
+
+	return primaryAccount, nil
 }
 
 func (t *Telegram) Listen() error {
@@ -170,4 +175,31 @@ func WithTyping[T any](
 	}()
 
 	return fn()
+}
+
+func sendMessageToPrimaryAccount(message string, user utils.User) error {
+	if primaryAccount == nil {
+		return fmt.Errorf("primary account not set")
+	}
+
+	var chatId int64
+
+	for _, connection := range user.Connections {
+		if connection.Provider == "telegram" {
+			chatId = utils.ToInt64(connection.Data["chat_id"])
+			break
+		}
+	}
+
+	if chatId == 0 {
+		return fmt.Errorf("telegram chat id not found")
+	}
+
+	msg := tgbotapi.NewMessage(
+		chatId,
+		message,
+	)
+
+	_, err := primaryAccount.bot.Send(msg)
+	return err
 }

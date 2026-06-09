@@ -186,7 +186,7 @@ func (s *UserStore) GetTelegramUser(id int64) (*User, error) {
 	for _, user := range s.data.Users {
 		for _, connection := range user.Connections {
 			if connection.Provider == "telegram" {
-				if toInt64(connection.Data["user_id"]) == toInt64(id) {
+				if ToInt64(connection.Data["user_id"]) == ToInt64(id) {
 					return &user, nil
 				}
 			}
@@ -196,7 +196,7 @@ func (s *UserStore) GetTelegramUser(id int64) (*User, error) {
 	return nil, nil
 }
 
-func toInt64(val interface{}) int64 {
+func ToInt64(val interface{}) int64 {
 	switch v := val.(type) {
 	case int:
 		return int64(v)
