@@ -19,12 +19,18 @@ type OpenRouter struct {
 func NewOpenRouter(apiKey string) *OpenRouter {
 	return &OpenRouter{
 		apiKey: apiKey,
-		model:  "qwen/qwen3.5-flash-02-23",
+		model:  "deepseek/deepseek-v4-flash",
 	}
 }
 
 type reasoningConfig struct {
 	Effort string `json:"effort,omitempty"`
+}
+
+// providerConfig allows specifying routing preferences to OpenRouter
+type providerConfig struct {
+	Order          []string `json:"order,omitempty"`
+	AllowFallbacks *bool    `json:"allow_fallbacks,omitempty"`
 }
 
 type chatRequest struct {
@@ -33,6 +39,7 @@ type chatRequest struct {
 	Reasoning *reasoningConfig `json:"reasoning,omitempty"`
 	MaxTokens int              `json:"max_tokens,omitempty"`
 	Tools     []Tool           `json:"tools,omitempty"`
+	Provider  *providerConfig  `json:"provider,omitempty"` // Added for provider configuration
 }
 
 type chatMessage struct {
@@ -134,6 +141,8 @@ func getToolCalls(m map[string]any, key string) []ToolCall {
 func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, chatId string, user utils.User) (string, error) {
 	const maxIterations = 5
 	for i := 0; i < maxIterations; i++ {
+		allowFallbacks := true
+
 		reqBody := chatRequest{
 			Model:    o.model,
 			Messages: messages,
@@ -146,6 +155,10 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 				{
 					Type: "openrouter:web_search",
 				},
+			},
+			Provider: &providerConfig{
+				Order:          []string{"novita"}, // Prioritizes Novita
+				AllowFallbacks: &allowFallbacks,    // Allows other providers if Novita is down
 			},
 		}
 
