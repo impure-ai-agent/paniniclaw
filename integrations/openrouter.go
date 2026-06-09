@@ -80,12 +80,36 @@ func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User,
 		chatMessages[i] = chatMessage{
 			Role:      msg.Data["role"].(string),
 			Content:   msg.Data["content"].(string),
-			ToolCalls: msg.Data["tool_calls"].([]ToolCall),
+			ToolCalls: getToolCalls(msg.Data, "tool_calls"),
 		}
 	}
 
 	allMessages := append([]chatMessage{systemMessage}, chatMessages...)
 	return o.chatWithTools(allMessages, db, chatId, user)
+}
+
+func getToolCalls(m map[string]any, key string) []ToolCall {
+	raw, ok := m[key]
+	if !ok || raw == nil {
+		return nil
+	}
+
+	// 1. If it's already the correct type, return it
+	if tc, ok := raw.([]ToolCall); ok {
+		return tc
+	}
+
+	// 2. If it was unmarshaled as generic JSON data, convert it
+	bytes, err := json.Marshal(raw)
+	if err != nil {
+		return nil
+	}
+
+	var tc []ToolCall
+	if err := json.Unmarshal(bytes, &tc); err != nil {
+		return nil
+	}
+	return tc
 }
 
 func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, chatId string, user utils.User) (string, error) {
