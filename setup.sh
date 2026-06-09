@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Check if the script is run as root
+if [ "$(id -u)" -ne 0 ]; then
+    echo "Error: This script must be run with sudo or as root to change file ownership." >&2
+    exit 1
+fi
+
 USER_NAME="paniniclaw"
 HOME_DIR="/home/${USER_NAME}"
 APP_DIR="${HOME_DIR}/paniniclaw"
@@ -70,6 +76,8 @@ fi
 # -----------------------------
 chown "root:root" "$SECRETS_FILE"
 chmod 600 "$SECRETS_FILE"
+find "$APP_DIR" -type f -name "*.go" -exec chown root:root {} +
+find "$APP_DIR" -type f -name "*.go" -exec chmod 644 {} +
 
 # -----------------------------
 # Install systemd service
