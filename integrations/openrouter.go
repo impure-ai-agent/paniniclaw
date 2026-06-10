@@ -152,6 +152,9 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 			MaxTokens: 10_000,
 			Tools: []Tool{
 				TerminalTool,
+				{
+					Type: "openrouter:web_search",
+				},
 			},
 			Provider: &providerConfig{
 				Order:          []string{"novita"}, // Prioritizes Novita
