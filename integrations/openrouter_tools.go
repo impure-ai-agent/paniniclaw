@@ -9,7 +9,7 @@ import (
 // Tool represents an OpenAI-compatible tool definition.
 type Tool struct {
 	Type     string             `json:"type"`
-	Function FunctionDefinition `json:"function,omitzero"`
+	Function FunctionDefinition `json:"function,omitzero"` // An empty function will cause 500 errors
 }
 
 type FunctionDefinition struct {
