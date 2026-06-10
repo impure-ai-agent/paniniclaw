@@ -60,8 +60,26 @@ type Message struct {
 	Id             int64
 	Provider       string
 	ConversationId string
-	Data           map[string]interface{}
+	Data           ChatMessage
 	CreatedAt      time.Time
+}
+
+type ChatMessage struct {
+	Role       string     `json:"role"`
+	Content    string     `json:"content"`                // Cannot be empty for tool calls and some terminal commands have no output
+	Name       string     `json:"name,omitempty"`         // Used in tool calls
+	ToolCallID string     `json:"tool_call_id,omitempty"` // Used in tool calls
+	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
+}
+
+// ToolCall represents a tool call requested by the model.
+type ToolCall struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Function struct {
+		Name      string `json:"name"`
+		Arguments string `json:"arguments"` // JSON string
+	} `json:"function"`
 }
 
 func (d *Database) AddMessage(
@@ -137,10 +155,6 @@ func (d *Database) GetRecentMessages(
 			}
 		}
 
-		if msg.Data["role"] == "tool" {
-			println("tool: ", string(rawData), " tool_call_id: ", msg.Data["tool_call_id"])
-		}
-
 		messages = append(messages, msg)
 	}
 
@@ -152,7 +166,7 @@ func (d *Database) GetRecentMessages(
 
 	for i := 1; i < len(messages); i++ {
 
-		if messages[i].Data["role"] == "user" {
+		if messages[i].Data.Role == "user" {
 			gap := messages[i].CreatedAt.Sub(messages[i-1].CreatedAt)
 
 			if gap > 4*time.Hour {

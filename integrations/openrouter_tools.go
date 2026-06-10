@@ -18,16 +18,6 @@ type FunctionDefinition struct {
 	Parameters  interface{} `json:"parameters,omitempty"`
 }
 
-// ToolCall represents a tool call requested by the model.
-type ToolCall struct {
-	ID       string `json:"id"`
-	Type     string `json:"type"`
-	Function struct {
-		Name      string `json:"name"`
-		Arguments string `json:"arguments"` // JSON string
-	} `json:"function"`
-}
-
 // Define the schema for the terminal command tool.
 var TerminalTool = Tool{
 	Type: "function",
