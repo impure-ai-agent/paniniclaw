@@ -204,17 +204,16 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 				}
 				println("Output:", output)
 
-				messages = append(messages, chatMessage{
+				message := chatMessage{
 					Role:       "tool",
 					Name:       "execute_command",
 					ToolCallID: toolCall.ID,
 					Content:    output,
-				})
+				}
 
-				toolJson, _ := json.Marshal(map[string]interface{}{
-					"role":    "tool",
-					"content": output,
-				})
+				messages = append(messages, message)
+
+				toolJson, _ := json.Marshal(message)
 
 				db.AddMessage(
 					"telegram",
@@ -223,10 +222,16 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 				)
 
 			} else {
-				toolJson, _ := json.Marshal(map[string]interface{}{
-					"role":    "tool",
-					"content": fmt.Sprintf("Error: Unknown tool %s", toolCall.Function.Name),
-				})
+				message := chatMessage{
+					Role:       "tool",
+					Name:       toolCall.Function.Name,
+					ToolCallID: toolCall.ID,
+					Content:    fmt.Sprintf("Error: Unknown tool %s", toolCall.Function.Name),
+				}
+
+				messages = append(messages, message)
+
+				toolJson, _ := json.Marshal(message)
 
 				db.AddMessage(
 					"telegram",
@@ -235,13 +240,6 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 				)
 
 				println("Error: Unknown tool %s", toolCall.Function.Name)
-
-				messages = append(messages, chatMessage{
-					Role:       "tool",
-					Name:       toolCall.Function.Name,
-					ToolCallID: toolCall.ID,
-					Content:    fmt.Sprintf("Error: Unknown tool %s", toolCall.Function.Name),
-				})
 			}
 		}
 	}
