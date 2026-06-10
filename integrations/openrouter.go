@@ -228,6 +228,19 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 				)
 
 			} else {
+				toolJson, _ := json.Marshal(map[string]interface{}{
+					"role":    "tool",
+					"content": fmt.Sprintf("Error: Unknown tool %s", toolCall.Function.Name),
+				})
+
+				db.AddMessage(
+					"telegram",
+					chatId,
+					string(toolJson),
+				)
+
+				println("Error: Unknown tool %s", toolCall.Function.Name)
+
 				messages = append(messages, chatMessage{
 					Role:       "tool",
 					Name:       toolCall.Function.Name,
