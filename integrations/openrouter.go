@@ -152,12 +152,9 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 			MaxTokens: 10_000,
 			Tools: []Tool{
 				TerminalTool,
-				/*
-					Web search causes 500 errors, not sure why. It might have something to do with openrouter_web_search appearing in the chat
-					{
-						Type: "openrouter:web_search",
-					},
-				*/
+				{
+					Type: "openrouter:web_search",
+				},
 			},
 			Provider: &providerConfig{
 				Order:          []string{"novita"}, // Prioritizes Novita
@@ -202,7 +199,7 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 					return "", fmt.Errorf("failed to parse tool arguments: %v", err)
 				}
 
-				print("Executing command for tool call:", args.Command, ".")
+				print("Executing command for tool call:", args.Command, ". id:", toolCall.ID, ".")
 				output, err := ExecuteCommand(args.Command)
 				if err != nil {
 					output = fmt.Sprintf("Error: %v\nOutput: %s", err, output)
