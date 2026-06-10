@@ -210,9 +210,7 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 					ToolCallID: toolCall.ID,
 					Content:    output,
 				}
-
 				messages = append(messages, message)
-
 				toolJson, _ := json.Marshal(message)
 
 				db.AddMessage(
@@ -228,9 +226,7 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 					ToolCallID: toolCall.ID,
 					Content:    fmt.Sprintf("Error: Unknown tool %s", toolCall.Function.Name),
 				}
-
 				messages = append(messages, message)
-
 				toolJson, _ := json.Marshal(message)
 
 				db.AddMessage(

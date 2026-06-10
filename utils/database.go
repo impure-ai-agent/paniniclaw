@@ -137,6 +137,10 @@ func (d *Database) GetRecentMessages(
 			}
 		}
 
+		if msg.Data["role"] == "tool" {
+			println("tool: %s", rawData)
+		}
+
 		messages = append(messages, msg)
 	}
 
