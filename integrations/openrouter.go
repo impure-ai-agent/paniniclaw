@@ -19,7 +19,7 @@ type OpenRouter struct {
 func NewOpenRouter(apiKey string) *OpenRouter {
 	return &OpenRouter{
 		apiKey: apiKey,
-		model:  "xiaomi/mimo-v2.5",
+		model:  "qwen/qwen3.5-flash",
 	}
 }
 
