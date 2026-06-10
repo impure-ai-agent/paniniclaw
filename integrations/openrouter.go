@@ -19,7 +19,7 @@ type OpenRouter struct {
 func NewOpenRouter(apiKey string) *OpenRouter {
 	return &OpenRouter{
 		apiKey: apiKey,
-		model:  "qwen/qwen3.5-flash-02-23",
+		model:  "deepseek/deepseek-v4-flash",
 	}
 }
 
@@ -141,6 +141,7 @@ func getToolCalls(m map[string]any, key string) []ToolCall {
 func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, chatId string, user utils.User) (string, error) {
 	const maxIterations = 5
 	for i := 0; i < maxIterations; i++ {
+		allowFallbacks := true
 
 		reqBody := chatRequest{
 			Model:    o.model,
@@ -157,6 +158,10 @@ func (o *OpenRouter) chatWithTools(messages []chatMessage, db *utils.Database, c
 						Type: "openrouter:web_search",
 					},
 				*/
+			},
+			Provider: &providerConfig{
+				Order:          []string{"novita"}, // Prioritizes Novita
+				AllowFallbacks: &allowFallbacks,    // Allows other providers if Novita is down
 			},
 		}
 
