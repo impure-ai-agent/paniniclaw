@@ -11,7 +11,7 @@ echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee /etc/profile.d/add_go_path
 sudo chmod +x /etc/profile.d/add_go_path.sh
 ```
 
-Although this will only run for root if you use `su -`. Then run this script to install PaniniClaw on Debian/Ubuntu
+Although this will only run for root if you use `su -`. Then run this script to install PaniniClaw on Debian/Ubuntu. Note: it will create a new user called paniniclaw.
 ```
 su -
 curl -fsSL https://raw.githubusercontent.com/impure/paniniclaw/main/setup.sh | bash
