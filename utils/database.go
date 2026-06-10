@@ -137,6 +137,10 @@ func (d *Database) GetRecentMessages(
 			}
 		}
 
+		if msg.Data["content"] == "" && msg.Data["role"] == "assistant" {
+			continue
+		}
+
 		messages = append(messages, msg)
 	}
 
