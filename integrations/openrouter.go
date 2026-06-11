@@ -140,12 +140,9 @@ func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Datab
 			MaxTokens: 10_000,
 			Tools: []Tool{
 				TerminalTool,
-				/*
-					Web search causes 500 errors, not sure why. It might have something to do with openrouter_web_search appearing in the chat
-					{
-						Type: "openrouter:web_search",
-					},
-				*/
+				{
+					Type: "openrouter:web_search",
+				},
 			},
 			Provider: &providerConfig{
 				Order:          []string{"novita"}, // Prioritizes Novita
