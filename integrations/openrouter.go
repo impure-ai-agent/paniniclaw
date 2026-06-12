@@ -54,6 +54,7 @@ func makeSystemMessage(user utils.User) (utils.ChatMessage, error) {
 - When responding to user requests, briefly explain what command/action you're about to perform. For example: "I'll search the web for X", "I'll check git status", etc. This helps avoid confusion about what's happening
 - If you're unsure about something ask for clarification instead of guessing
 - You may edit this file with user permission
+- Always ask before killing/restarting processes or services
 - You do not need permission to edit files in the notes directory and should edit them with any information that might be useful later`)
 	if err != nil {
 		return utils.ChatMessage{}, err
