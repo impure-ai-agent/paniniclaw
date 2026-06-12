@@ -263,7 +263,8 @@ func (o *OpenRouter) rawChat(prompt chatRequest) (utils.ChatMessage, error) {
 		return utils.ChatMessage{}, err
 	}
 
-	println("Making request: ", string(body))
+	// The body can be very large in long chats
+	//println("Making request: ", string(body))
 
 	req, err := http.NewRequest(
 		"POST",
