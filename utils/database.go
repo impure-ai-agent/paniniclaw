@@ -66,7 +66,7 @@ type Message struct {
 
 type ChatMessage struct {
 	Role       string     `json:"role"`
-	Content    string     `json:"content"`                // Cannot be empty for tool calls and some terminal commands have no output
+	Content    interface{} `json:"content"`                // Cannot be empty for tool calls and some terminal commands have no output
 	Name       string     `json:"name,omitempty"`         // Used in tool calls
 	ToolCallID string     `json:"tool_call_id,omitempty"` // Used in tool calls
 	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`

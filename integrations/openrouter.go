@@ -20,7 +20,7 @@ type OpenRouter struct {
 func NewOpenRouter(apiKey string) *OpenRouter {
 	return &OpenRouter{
 		apiKey: apiKey,
-		model:  "deepseek/deepseek-v4-flash",
+		model:  "qwen/qwen3.5-flash-02-23",
 	}
 }
 
@@ -182,11 +182,13 @@ func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Datab
 
 		if len(responseMsg.ToolCalls) == 0 {
 			// No tools called, return the text content
-			return responseMsg.Content, nil
+			return responseMsg.Content.(string), nil
 		}
 
 		if responseMsg.Content != "" {
-			sendMessageToPrimaryAccount(responseMsg.Content, user)
+			if contentStr, ok := responseMsg.Content.(string); ok {
+			sendMessageToPrimaryAccount(contentStr, user)
+		}
 		}
 
 		msgJson, _ := json.Marshal(map[string]interface{}{
