@@ -63,91 +63,100 @@ func (t *Telegram) Listen() error {
 			continue
 		}
 
-		user, err := t.userStore.GetTelegramUser(update.Message.From.ID)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-
-		if user == nil {
-			if setupKey != "" && update.Message.Text == setupKey {
-				t.userStore.CreateOwner(
-					update.Message.From.FirstName,
-					update.Message.From.ID,
-					update.Message.Chat.ID,
-				)
-				setupKey = ""
-				t.bot.Send(tgbotapi.NewMessage(
-					update.Message.Chat.ID,
-					"You've been registered as the owner. You can now chat normally.",
-				))
-				println("Set up user")
-			} else {
-				t.bot.Send(tgbotapi.NewMessage(
-					update.Message.Chat.ID,
-					"You're not registered. Please enter the setup key.",
-				))
-				println("Unregistered user")
-			}
-			continue
-		}
-
-		// Build multimodal content if the message contains a photo
-		content := buildMessageContent(update.Message)
-
-		msgJson, _ := json.Marshal(map[string]interface{}{
-			"role":    "user",
-			"content": content,
-		})
-
-		t.db.AddMessage(
-			"telegram",
-			fmt.Sprintf("%d", update.Message.Chat.ID),
-			string(msgJson),
-		)
-
-		response, err := WithTyping(
-			t.bot,
-			update.Message.Chat.ID,
-			func() (string, error) {
-
-				history, err := t.db.GetRecentMessages(
-					"telegram",
-					fmt.Sprintf("%d", update.Message.Chat.ID),
-				)
-				if err != nil {
-					return "", err
-				}
-
-				response, err := t.openRouter.ChatFromMessages(history, *user, t.db, fmt.Sprintf("%d", update.Message.Chat.ID))
-
-				msgJson, _ := json.Marshal(map[string]interface{}{
-					"role":    "assistant",
-					"content": response,
-				})
-
-				t.db.AddMessage(
-					"telegram",
-					fmt.Sprintf("%d", update.Message.Chat.ID),
-					string(msgJson),
-				)
-				return response, err
-			},
-		)
-
-		if err != nil {
-			response = "Error: " + err.Error()
-		}
-
-		msg := tgbotapi.NewMessage(
-			update.Message.Chat.ID,
-			response,
-		)
-
-		t.bot.Send(msg)
+		// Handle each message in its own goroutine so we don't block the event loop
+		go t.handleMessage(update)
 	}
 
 	return nil
+}
+
+func (t *Telegram) handleMessage(update tgbotapi.Update) {
+	if update.Message == nil {
+		return
+	}
+
+	user, err := t.userStore.GetTelegramUser(update.Message.From.ID)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if user == nil {
+		if setupKey != "" && update.Message.Text == setupKey {
+			t.userStore.CreateOwner(
+				update.Message.From.FirstName,
+				update.Message.From.ID,
+				update.Message.Chat.ID,
+			)
+			setupKey = ""
+			t.bot.Send(tgbotapi.NewMessage(
+				update.Message.Chat.ID,
+				"You've been registered as the owner. You can now chat normally.",
+			))
+			println("Set up user")
+		} else {
+			t.bot.Send(tgbotapi.NewMessage(
+				update.Message.Chat.ID,
+				"You're not registered. Please enter the setup key.",
+			))
+			println("Unregistered user")
+		}
+		return
+	}
+
+	// Build multimodal content if the message contains a photo
+	content := buildMessageContent(update.Message)
+
+	msgJson, _ := json.Marshal(map[string]interface{}{
+		"role":    "user",
+		"content": content,
+	})
+
+	t.db.AddMessage(
+		"telegram",
+		fmt.Sprintf("%d", update.Message.Chat.ID),
+		string(msgJson),
+	)
+
+	response, err := WithTyping(
+		t.bot,
+		update.Message.Chat.ID,
+		func() (string, error) {
+
+			history, err := t.db.GetRecentMessages(
+				"telegram",
+				fmt.Sprintf("%d", update.Message.Chat.ID),
+			)
+			if err != nil {
+				return "", err
+			}
+
+			response, err := t.openRouter.ChatFromMessages(history, *user, t.db, fmt.Sprintf("%d", update.Message.Chat.ID))
+
+			msgJson, _ := json.Marshal(map[string]interface{}{
+				"role":    "assistant",
+				"content": response,
+			})
+
+			t.db.AddMessage(
+				"telegram",
+				fmt.Sprintf("%d", update.Message.Chat.ID),
+				string(msgJson),
+			)
+			return response, err
+		},
+	)
+
+	if err != nil {
+		response = "Error: " + err.Error()
+	}
+
+	msg := tgbotapi.NewMessage(
+		update.Message.Chat.ID,
+		response,
+	)
+
+	t.bot.Send(msg)
 }
 
 // Note: Telegram typing indicator is displayed at the top of the chat, not inline with the message.
