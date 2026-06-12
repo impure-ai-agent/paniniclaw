@@ -21,3 +21,10 @@ You will then have to populate the secrets.json file with your API keys and rest
 ```
 sudo systemctl restart paniniclaw
 ```
+
+## Debugging
+
+You can run as paniniclaw by doing:
+```
+sudo -u paniniclaw /bin/bash
+```

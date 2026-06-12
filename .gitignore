@@ -2,3 +2,13 @@ pb_data
 .DS_store
 secrets.json
 data
+
+# Compiled binary
+paniniclaw
+
+# logs
+std.log
+
+# agent notes
+notes/
+directives/
