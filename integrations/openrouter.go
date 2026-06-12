@@ -149,7 +149,7 @@ func getToolCalls(m map[string]any, key string) []utils.ToolCall {
 }
 
 func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Database, chatId string, user utils.User) (string, error) {
-	const maxIterations = 5
+	const maxIterations = 100
 	for i := 0; i < maxIterations; i++ {
 		allowFallbacks := true
 
