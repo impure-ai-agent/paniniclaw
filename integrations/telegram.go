@@ -219,6 +219,7 @@ func sendMessageToPrimaryAccount(message string, user utils.User) error {
 
 // buildMessageContent builds Text and Images fields for a message.
 func buildMessageContent(message *tgbotapi.Message) (text string, images []string) {
+	/* Images are disabled for now because Deepseek does not support them, maybe Deepseek V5 will support them.
 	if len(message.Photo) > 0 {
 		// Get the largest photo (last in the array)
 		largest := message.Photo[len(message.Photo)-1]
@@ -240,6 +241,7 @@ func buildMessageContent(message *tgbotapi.Message) (text string, images []strin
 		images = []string{dataURI}
 		return
 	}
+	*/
 
 	// Plain text message (no images)
 	return message.Text, []string{}

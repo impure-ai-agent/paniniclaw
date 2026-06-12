@@ -20,7 +20,7 @@ type OpenRouter struct {
 func NewOpenRouter(apiKey string) *OpenRouter {
 	return &OpenRouter{
 		apiKey: apiKey,
-		model:  "qwen/qwen3.5-flash-02-23",
+		model:  "deepseek/deepseek-v4-flash",
 	}
 }
 
