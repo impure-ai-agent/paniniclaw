@@ -36,7 +36,7 @@ type providerConfig struct {
 
 type chatRequest struct {
 	Model     string              `json:"model"`
-	Messages  []utils.ChatMessage `json:"messages"`
+	Messages  []interface{} `json:"messages"`
 	Reasoning *reasoningConfig    `json:"reasoning,omitempty"`
 	MaxTokens int                 `json:"max_tokens,omitempty"`
 	Tools     []Tool              `json:"tools,omitempty"`
@@ -153,9 +153,36 @@ func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Datab
 	for i := 0; i < maxIterations; i++ {
 		allowFallbacks := true
 
-		reqBody := chatRequest{
+		// Convert to OpenRouter's multimodal format
+	openRouterMessages := make([]interface{}, len(messages))
+	for i, msg := range messages {
+		if len(msg.Images) > 0 {
+			// Multimodal message
+			contents := []map[string]interface{}{
+				{"type": "text", "text": msg.Text},
+			}
+			for _, img := range msg.Images {
+				contents = append(contents, map[string]interface{}{
+					"type": "image_url",
+					"image_url": map[string]interface{}{"url": img},
+				})
+			}
+			openRouterMessages[i] = map[string]interface{}{
+				"role": msg.Role,
+				"content": contents,
+			}
+		} else {
+			// Text-only message
+			openRouterMessages[i] = map[string]interface{}{
+				"role": msg.Role,
+				"content": msg.Text,
+			}
+		}
+	}
+	
+	reqBody := chatRequest{
 			Model:    o.model,
-			Messages: messages,
+			Messages: openRouterMessages,
 			Reasoning: &reasoningConfig{
 				Effort: "none",
 			},
