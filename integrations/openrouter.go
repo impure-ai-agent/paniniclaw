@@ -81,7 +81,7 @@ Do not use curl directly as it wastes tokens and takes forever, instead you can 
 	}
 
 	return utils.ChatMessage{
-		Role:    "system",
+		Role: "system",
 		Text: fmt.Sprintf("directives/core.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s\n\nnotes/general.md: %s\n\nnotes/user%s.md: %s\n", soulBytes, telegramBytes, userJson, generalBytes, strconv.Itoa(user.Id), userNotesBytes),
 	}, nil
 }
@@ -193,7 +193,7 @@ func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Datab
 
 		msgJson, _ := json.Marshal(map[string]interface{}{
 			"role":       "assistant",
-			"text":     responseMsg.Text,
+			"text":       responseMsg.Text,
 			"tool_calls": responseMsg.ToolCalls,
 		})
 
@@ -311,7 +311,7 @@ func toOpenRouterFormat(msg utils.ChatMessage) map[string]interface{} {
 	result := map[string]interface{}{
 		"role": msg.Role,
 	}
-	
+
 	if len(msg.Images) > 0 {
 		// Multimodal
 		contents := []map[string]interface{}{
@@ -319,7 +319,7 @@ func toOpenRouterFormat(msg utils.ChatMessage) map[string]interface{} {
 		}
 		for _, img := range msg.Images {
 			contents = append(contents, map[string]interface{}{
-				"type": "image_url",
+				"type":      "image_url",
 				"image_url": map[string]interface{}{"url": img},
 			})
 		}
@@ -328,6 +328,6 @@ func toOpenRouterFormat(msg utils.ChatMessage) map[string]interface{} {
 		// Text only
 		result["content"] = msg.Text
 	}
-	
+
 	return result
 }

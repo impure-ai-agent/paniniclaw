@@ -94,7 +94,7 @@ func (t *Telegram) Listen() error {
 
 		// Build message with text and optional images
 		text, images := buildMessageContent(update.Message)
-		
+
 		msgData := map[string]interface{}{
 			"role": "user",
 		}
