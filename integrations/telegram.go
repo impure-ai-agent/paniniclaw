@@ -307,4 +307,3 @@ func downloadTelegramFileAsDataURI(bot *tgbotapi.BotAPI, fileID string) (string,
 
 	return dataURI, nil
 }
-

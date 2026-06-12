@@ -1,1 +1,0 @@
-# Latest Image Support Updates
