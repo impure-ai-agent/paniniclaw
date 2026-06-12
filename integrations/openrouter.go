@@ -81,8 +81,8 @@ Do not use curl directly as it wastes tokens and takes forever, instead you can 
 	}
 
 	return utils.ChatMessage{
-		Role:    "system",
-		Content: fmt.Sprintf("directives/core.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s\n\nnotes/general.md: %s\n\nnotes/user%s.md: %s\n", soulBytes, telegramBytes, userJson, generalBytes, strconv.Itoa(user.Id), userNotesBytes),
+		Role: "system",
+		Text: fmt.Sprintf("directives/core.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s\n\nnotes/general.md: %s\n\nnotes/user%s.md: %s\n", soulBytes, telegramBytes, userJson, generalBytes, strconv.Itoa(user.Id), userNotesBytes),
 	}, nil
 }
 
@@ -182,18 +182,16 @@ func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Datab
 
 		if len(responseMsg.ToolCalls) == 0 {
 			// No tools called, return the text content
-			return responseMsg.Content.(string), nil
+			return responseMsg.Text, nil
 		}
 
-		if responseMsg.Content != "" {
-			if contentStr, ok := responseMsg.Content.(string); ok {
-			sendMessageToPrimaryAccount(contentStr, user)
-		}
+		if responseMsg.Text != "" {
+			sendMessageToPrimaryAccount(responseMsg.Text, user)
 		}
 
 		msgJson, _ := json.Marshal(map[string]interface{}{
 			"role":       "assistant",
-			"content":    responseMsg.Content,
+			"text":       responseMsg.Text,
 			"tool_calls": responseMsg.ToolCalls,
 		})
 
@@ -222,7 +220,7 @@ func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Datab
 					Role:       "tool",
 					Name:       "execute_command",
 					ToolCallID: toolCall.ID,
-					Content:    output,
+					Text:       output,
 				}
 				messages = append(messages, message)
 				toolJson, _ := json.Marshal(message)
@@ -238,7 +236,7 @@ func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Datab
 					Role:       "tool",
 					Name:       toolCall.Function.Name,
 					ToolCallID: toolCall.ID,
-					Content:    fmt.Sprintf("Error: Unknown tool %s", toolCall.Function.Name),
+					Text:       fmt.Sprintf("Error: Unknown tool %s", toolCall.Function.Name),
 				}
 				messages = append(messages, message)
 				toolJson, _ := json.Marshal(message)
@@ -304,4 +302,30 @@ func (o *OpenRouter) rawChat(prompt chatRequest) (utils.ChatMessage, error) {
 	}
 
 	return result.Choices[0].Message, nil
+}
+
+// toOpenRouterFormat converts our ChatMessage to OpenRouter format
+func toOpenRouterFormat(msg utils.ChatMessage) map[string]interface{} {
+	result := map[string]interface{}{
+		"role": msg.Role,
+	}
+
+	if len(msg.Images) > 0 {
+		// Multimodal
+		contents := []map[string]interface{}{
+			{"type": "text", "text": msg.Text},
+		}
+		for _, img := range msg.Images {
+			contents = append(contents, map[string]interface{}{
+				"type":      "image_url",
+				"image_url": map[string]interface{}{"url": img},
+			})
+		}
+		result["content"] = contents
+	} else if msg.Text != "" {
+		// Text only
+		result["content"] = msg.Text
+	}
+
+	return result
 }
