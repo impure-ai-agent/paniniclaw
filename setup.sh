@@ -76,8 +76,9 @@ fi
 # -----------------------------
 chown "root:root" "$SECRETS_FILE"
 chmod 600 "$SECRETS_FILE"
-find "$APP_DIR" -type f -name "*.go" -exec chown root:root {} +
-find "$APP_DIR" -type f -name "*.go" -exec chmod 644 {} +
+
+# find "$APP_DIR" -type f -name "*.go" -exec chown root:root {} +
+# find "$APP_DIR" -type f -name "*.go" -exec chmod 644 {} +
 
 # -----------------------------
 # Install systemd service
