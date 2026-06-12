@@ -28,3 +28,16 @@ You can run as paniniclaw by doing:
 ```
 sudo -u paniniclaw /bin/bash
 ```
+
+## Github
+
+- Install the Github CLI (gh). This allows you to create PRs using `gh pr create`.
+- You will also need to create a classic token (not fine grained) with all repo permissions and `read:org`.
+- Authenticate with gh using `echo "YOUR_GITHUB_TOKEN_HERE" | gh auth login --with-token`
+- Create a `~/.netrc` file (or update it) with the following content:
+```
+machine api.github.com
+    login <YOUR_GITHUB_USERNAME>
+    password <YOUR_GITHUB_TOKEN>
+```
+- Finally add your Github bot account to be a contributor to your repo
