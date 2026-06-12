@@ -186,9 +186,7 @@ func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Datab
 		}
 
 		if responseMsg.Text != "" {
-			if contentStr := responseMsg.Text; contentStr != "" {
-				sendMessageToPrimaryAccount(contentStr, user)
-			}
+			sendMessageToPrimaryAccount(responseMsg.Text, user)
 		}
 
 		msgJson, _ := json.Marshal(map[string]interface{}{
