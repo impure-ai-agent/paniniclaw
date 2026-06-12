@@ -22,6 +22,8 @@ You will then have to populate the secrets.json file with your API keys and rest
 sudo systemctl restart paniniclaw
 ```
 
+It is recommended to put a spend limit on your OpenRouter API key.
+
 ## Debugging
 
 You can run as paniniclaw by doing:
