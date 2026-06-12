@@ -1,12 +1,14 @@
 package integrations
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"paniniclaw/utils"
+	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -18,6 +20,9 @@ type Telegram struct {
 	db         *utils.Database
 	userStore  *utils.UserStore
 	openRouter *OpenRouter
+
+	mu          sync.Mutex
+	cancelFuncs map[int64]context.CancelFunc
 }
 
 var setupKey string
@@ -42,10 +47,11 @@ func NewTelegram(
 
 	if primaryAccount == nil {
 		primaryAccount = &Telegram{
-			bot:        bot,
-			db:         db,
-			userStore:  userStore,
-			openRouter: openRouter,
+			bot:         bot,
+			db:          db,
+			userStore:   userStore,
+			openRouter:  openRouter,
+			cancelFuncs: make(map[int64]context.CancelFunc),
 		}
 	}
 
@@ -74,6 +80,24 @@ func (t *Telegram) handleMessage(update tgbotapi.Update) {
 	if update.Message == nil {
 		return
 	}
+
+	chatID := update.Message.Chat.ID
+
+	// Cancel any existing handler for this chat
+	t.mu.Lock()
+	if cancel, ok := t.cancelFuncs[chatID]; ok {
+		cancel()
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	t.cancelFuncs[chatID] = cancel
+	t.mu.Unlock()
+
+	defer func() {
+		t.mu.Lock()
+		delete(t.cancelFuncs, chatID)
+		t.mu.Unlock()
+		cancel()
+	}()
 
 	user, err := t.userStore.GetTelegramUser(update.Message.From.ID)
 	if err != nil {
@@ -104,6 +128,13 @@ func (t *Telegram) handleMessage(update tgbotapi.Update) {
 		return
 	}
 
+	// Handle /stop command
+	if update.Message.Text == "/stop" {
+		msg := tgbotapi.NewMessage(chatID, "Stopped.")
+		t.bot.Send(msg)
+		return
+	}
+
 	// Build multimodal content if the message contains a photo
 	content := buildMessageContent(update.Message)
 
@@ -114,24 +145,23 @@ func (t *Telegram) handleMessage(update tgbotapi.Update) {
 
 	t.db.AddMessage(
 		"telegram",
-		fmt.Sprintf("%d", update.Message.Chat.ID),
+		fmt.Sprintf("%d", chatID),
 		string(msgJson),
 	)
 
 	response, err := WithTyping(
 		t.bot,
-		update.Message.Chat.ID,
+		chatID,
 		func() (string, error) {
-
 			history, err := t.db.GetRecentMessages(
 				"telegram",
-				fmt.Sprintf("%d", update.Message.Chat.ID),
+				fmt.Sprintf("%d", chatID),
 			)
 			if err != nil {
 				return "", err
 			}
 
-			response, err := t.openRouter.ChatFromMessages(history, *user, t.db, fmt.Sprintf("%d", update.Message.Chat.ID))
+			response, err := t.openRouter.ChatFromMessages(ctx, history, *user, t.db, fmt.Sprintf("%d", chatID))
 
 			msgJson, _ := json.Marshal(map[string]interface{}{
 				"role":    "assistant",
@@ -140,7 +170,7 @@ func (t *Telegram) handleMessage(update tgbotapi.Update) {
 
 			t.db.AddMessage(
 				"telegram",
-				fmt.Sprintf("%d", update.Message.Chat.ID),
+				fmt.Sprintf("%d", chatID),
 				string(msgJson),
 			)
 			return response, err
@@ -152,7 +182,7 @@ func (t *Telegram) handleMessage(update tgbotapi.Update) {
 	}
 
 	msg := tgbotapi.NewMessage(
-		update.Message.Chat.ID,
+		chatID,
 		response,
 	)
 

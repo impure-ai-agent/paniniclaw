@@ -2,6 +2,7 @@ package integrations
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -56,7 +57,7 @@ func makeSystemMessage(user utils.User) (utils.ChatMessage, error) {
 - If you're unsure about something ask for clarification instead of guessing
 - You may edit this file with user permission
 - Always ask before killing/restarting processes or services
-- You do not need permission to edit files in the notes directory and should edit them with any information that might be useful later
+- You do not need permission to edit files in the notes directory and should edit them with any information that may be useful later
 - The user can make mistakes, especially about programming. You should double check the user doesn't accidentally break something.`)
 	if err != nil {
 		return utils.ChatMessage{}, err
@@ -115,7 +116,7 @@ func ensureFileExists(path string, defaultContent string) ([]byte, error) {
 	return data, nil
 }
 
-func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User, db *utils.Database, chatId string) (string, error) {
+func (o *OpenRouter) ChatFromMessages(ctx context.Context, messages []utils.Message, user utils.User, db *utils.Database, chatId string) (string, error) {
 	systemMessage, err := makeSystemMessage(user)
 	if err != nil {
 		return "", err
@@ -127,7 +128,7 @@ func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User,
 	}
 
 	allMessages := append([]utils.ChatMessage{systemMessage}, chatMessages...)
-	return o.chatWithTools(allMessages, db, chatId, user)
+	return o.chatWithTools(ctx, allMessages, db, chatId, user)
 }
 
 func getToolCalls(m map[string]any, key string) []utils.ToolCall {
@@ -154,7 +155,7 @@ func getToolCalls(m map[string]any, key string) []utils.ToolCall {
 	return tc
 }
 
-func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Database, chatId string, user utils.User) (string, error) {
+func (o *OpenRouter) chatWithTools(ctx context.Context, messages []utils.ChatMessage, db *utils.Database, chatId string, user utils.User) (string, error) {
 	const maxIterations = 100
 	for i := 0; i < maxIterations; i++ {
 		allowFallbacks := true
@@ -178,7 +179,7 @@ func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Datab
 			},
 		}
 
-		responseMsg, err := o.rawChat(reqBody)
+		responseMsg, err := o.rawChat(ctx, reqBody)
 		if err != nil {
 			return "", err
 		}
@@ -263,7 +264,7 @@ func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Datab
 	return "", fmt.Errorf("exceeded max tool call iterations limit (%d)", maxIterations)
 }
 
-func (o *OpenRouter) rawChat(prompt chatRequest) (utils.ChatMessage, error) {
+func (o *OpenRouter) rawChat(ctx context.Context, prompt chatRequest) (utils.ChatMessage, error) {
 	body, err := json.Marshal(prompt)
 	if err != nil {
 		return utils.ChatMessage{}, err
@@ -278,7 +279,8 @@ func (o *OpenRouter) rawChat(prompt chatRequest) (utils.ChatMessage, error) {
 		println("Making request with last message:\n", string(lastMessage))
 	}
 
-	req, err := http.NewRequest(
+	req, err := http.NewRequestWithContext(
+		ctx,
 		"POST",
 		"https://openrouter.ai/api/v1/chat/completions",
 		bytes.NewReader(body),

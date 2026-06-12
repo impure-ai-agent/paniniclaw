@@ -43,3 +43,7 @@ machine api.github.com
     password <YOUR_GITHUB_TOKEN>
 ```
 - Finally add your Github bot account to be a contributor to your repo
+
+## Commands
+
+- **/stop** - Cancel the current response and stop the bot from thinking. Useful if you sent a message by accident or changed your mind.
