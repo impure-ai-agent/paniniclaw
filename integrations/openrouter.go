@@ -265,8 +265,11 @@ func (o *OpenRouter) rawChat(prompt chatRequest) (utils.ChatMessage, error) {
 
 	// The body can be very large in long chats
 	if len(prompt.Messages) > 0 {
-		msg := prompt.Messages[len(prompt.Messages)-1]
-		fmt.Printf("Last message (Role=%s, Text=%s)\n", msg.Role, msg.Text)
+		lastMessage, err := json.MarshalIndent(prompt.Messages[len(prompt.Messages)-1], "", "\t")
+		if err != nil {
+			println("Error marshaling last message:", err.Error())
+		}
+		println("Making request with last message:\n", string(lastMessage))
 	}
 
 	req, err := http.NewRequest(
