@@ -57,7 +57,7 @@ func makeSystemMessage(user utils.User) (utils.ChatMessage, error) {
 - If you're unsure about something ask for clarification instead of guessing
 - You may edit this file with user permission
 - Always ask before killing/restarting processes or services
-- You do not need permission to edit files in the notes directory and should edit them with any information that may be useful later
+- You do not need permission to edit files in the notes directory and should edit them with any information that might be useful later
 - The user can make mistakes, especially about programming. You should double check the user doesn't accidentally break something.`)
 	if err != nil {
 		return utils.ChatMessage{}, err
@@ -169,6 +169,7 @@ func (o *OpenRouter) chatWithTools(ctx context.Context, messages []utils.ChatMes
 			MaxTokens: 10_000,
 			Tools: []Tool{
 				TerminalTool,
+				AppendNotesTool,
 				{
 					Type: "openrouter:web_search",
 				},
@@ -228,6 +229,34 @@ func (o *OpenRouter) chatWithTools(ctx context.Context, messages []utils.ChatMes
 				message := utils.ChatMessage{
 					Role:       "tool",
 					Name:       "execute_command",
+					ToolCallID: toolCall.ID,
+					Content:    output,
+				}
+				messages = append(messages, message)
+				toolJson, _ := json.Marshal(message)
+
+				db.AddMessage(
+					"telegram",
+					chatId,
+					string(toolJson),
+				)
+
+			} else if toolCall.Function.Name == "append_notes" {
+				var args AppendNotesArgs
+				if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
+					return "", fmt.Errorf("failed to parse tool arguments: %v", err)
+				}
+
+				println("Appending to notes:", args.Content, "scope:", args.Scope)
+				output, err := AppendNotes(args.Content, args.Scope, user.Id)
+				if err != nil {
+					output = fmt.Sprintf("Error: %v", err)
+				}
+				println("Output:", output)
+
+				message := utils.ChatMessage{
+					Role:       "tool",
+					Name:       "append_notes",
 					ToolCallID: toolCall.ID,
 					Content:    output,
 				}
