@@ -303,29 +303,3 @@ func (o *OpenRouter) rawChat(prompt chatRequest) (utils.ChatMessage, error) {
 
 	return result.Choices[0].Message, nil
 }
-
-// toOpenRouterFormat converts our ChatMessage to OpenRouter format
-func toOpenRouterFormat(msg utils.ChatMessage) map[string]interface{} {
-	result := map[string]interface{}{
-		"role": msg.Role,
-	}
-
-	if len(msg.Images) > 0 {
-		// Multimodal
-		contents := []map[string]interface{}{
-			{"type": "text", "text": msg.Text},
-		}
-		for _, img := range msg.Images {
-			contents = append(contents, map[string]interface{}{
-				"type":      "image_url",
-				"image_url": map[string]interface{}{"url": img},
-			})
-		}
-		result["content"] = contents
-	} else if msg.Text != "" {
-		// Text only
-		result["content"] = msg.Text
-	}
-
-	return result
-}
