@@ -3,11 +3,12 @@ package integrations
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"paniniclaw/utils"
+	"path/filepath"
 	"strconv"
 )
 
@@ -49,17 +50,22 @@ type chatResponse struct {
 }
 
 func makeSystemMessage(user utils.User) (utils.ChatMessage, error) {
-	soulBytes, err := os.ReadFile("directives/core.md")
+	soulBytes, err := ensureFileExists("directives/core.md", `You are PaniniClaw, a helpful assistant that also makes paninis.
+If you are unsure about something ask for clarification instead of guessing.
+You may edit this file with user permission.
+You do not need permission to edit files in the notes directory and should edit them with any information that might be useful later.`)
 	if err != nil {
 		return utils.ChatMessage{}, err
 	}
 
-	telegramBytes, err := os.ReadFile("directives/telegram.md")
+	telegramBytes, err := ensureFileExists("directives/telegram.md", "You are operating in a telegram chat. Do not use markdown as it is not supported.")
 	if err != nil {
 		return utils.ChatMessage{}, err
 	}
 
-	generalBytes, err := os.ReadFile("notes/general.md")
+	generalBytes, err := ensureFileExists("notes/general.md", `When executing terminal tasks you are an unprivileged user. If you are unable to do something do not go around in circles trying complicated workarounds. Instead you should ask the user for help. Always be extremely careful with commands that can delete data. This includes commands which may overwrite files.
+Do not use curl directly as it wastes tokens and takes forever, instead you can run ./clean_curl.py <url> which strips HTML tags.
+`)
 	if err != nil {
 		return utils.ChatMessage{}, err
 	}
@@ -69,14 +75,7 @@ func makeSystemMessage(user utils.User) (utils.ChatMessage, error) {
 		return utils.ChatMessage{}, err
 	}
 
-	// os.O_RDONLY - Open the file as read-only.
-	// os.O_CREATE - Create the file if it does not exist.
-	userNotesFile, err := os.OpenFile(fmt.Sprintf("notes/user%s.md", strconv.Itoa(user.Id)), os.O_RDONLY|os.O_CREATE, 0644)
-	if err != nil {
-		return utils.ChatMessage{}, err
-	}
-	defer userNotesFile.Close()
-	userNotesBytes, err := io.ReadAll(userNotesFile)
+	userNotesBytes, err := ensureFileExists(fmt.Sprintf("notes/user%s.md", strconv.Itoa(user.Id)), "")
 	if err != nil {
 		return utils.ChatMessage{}, err
 	}
@@ -85,6 +84,29 @@ func makeSystemMessage(user utils.User) (utils.ChatMessage, error) {
 		Role:    "system",
 		Content: fmt.Sprintf("directives/core.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s\n\nnotes/general.md: %s\n\nnotes/user%s.md: %s\n", soulBytes, telegramBytes, userJson, generalBytes, strconv.Itoa(user.Id), userNotesBytes),
 	}, nil
+}
+
+func ensureFileExists(path string, defaultContent string) ([]byte, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			// Create the parent directories if they don't exist
+			dir := filepath.Dir(path)
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return nil, err
+			}
+
+			// Write the default content
+			contentBytes := []byte(defaultContent)
+			if err := os.WriteFile(path, contentBytes, 0644); err != nil {
+				return nil, err
+			}
+			return contentBytes, nil
+		}
+		// Return any other error encountered (e.g., permission issues)
+		return nil, err
+	}
+	return data, nil
 }
 
 func (o *OpenRouter) ChatFromMessages(messages []utils.Message, user utils.User, db *utils.Database, chatId string) (string, error) {
