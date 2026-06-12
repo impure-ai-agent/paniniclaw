@@ -264,7 +264,10 @@ func (o *OpenRouter) rawChat(prompt chatRequest) (utils.ChatMessage, error) {
 	}
 
 	// The body can be very large in long chats
-	//println("Making request: ", string(body))
+	if len(prompt.Messages) > 0 {
+		msg := prompt.Messages[len(prompt.Messages)-1]
+		fmt.Printf("Last message (Role=%s, Text=%s)\n", msg.Role, msg.Text)
+	}
 
 	req, err := http.NewRequest(
 		"POST",
