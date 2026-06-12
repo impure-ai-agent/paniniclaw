@@ -92,20 +92,13 @@ func (t *Telegram) Listen() error {
 			continue
 		}
 
-		// Build message with text and optional images
-		text, images := buildMessageContent(update.Message)
+		// Build multimodal content if the message contains a photo
+		content := buildMessageContent(update.Message)
 
-		msgData := map[string]interface{}{
-			"role": "user",
-		}
-		if text != "" {
-			msgData["text"] = text
-		}
-		if len(images) > 0 {
-			msgData["images"] = images
-		}
-
-		msgJson, _ := json.Marshal(msgData)
+		msgJson, _ := json.Marshal(map[string]interface{}{
+			"role":    "user",
+			"content": content,
+		})
 
 		t.db.AddMessage(
 			"telegram",
@@ -217,8 +210,8 @@ func sendMessageToPrimaryAccount(message string, user utils.User) error {
 	return err
 }
 
-// buildMessageContent builds Text and Images fields for a message.
-func buildMessageContent(message *tgbotapi.Message) (text string, images []string) {
+// Returns either a plain text string or a multimodal content array.
+func buildMessageContent(message *tgbotapi.Message) interface{} {
 	/* Images are disabled for now because Deepseek does not support them, maybe Deepseek V5 will support them.
 	if len(message.Photo) > 0 {
 		// Get the largest photo (last in the array)
@@ -229,22 +222,38 @@ func buildMessageContent(message *tgbotapi.Message) (text string, images []strin
 		dataURI, err := downloadTelegramFileAsDataURI(primaryAccount.bot, fileID)
 		if err != nil {
 			fmt.Println("Error downloading photo:", err)
-			// Fall back to just the caption/text (no images)
-			return message.Caption, []string{}
+			// Fall back to just the caption/text
+			if message.Caption != "" {
+				return message.Caption
+			}
+			return "[Image could not be downloaded]"
 		}
 
-		text = message.Caption
+		// Build multimodal content array
+		content := []map[string]interface{}{}
+
+		text := message.Caption
 		if text == "" {
 			text = "What's in this image?"
 		}
 
-		images = []string{dataURI}
-		return
+		content = append(content, map[string]interface{}{
+			"type": "text",
+			"text": text,
+		})
+		content = append(content, map[string]interface{}{
+			"type": "image_url",
+			"image_url": map[string]interface{}{
+				"url": dataURI,
+			},
+		})
+
+		return content
 	}
 	*/
 
-	// Plain text message (no images)
-	return message.Text, []string{}
+	// Plain text message
+	return message.Text
 }
 
 // downloadTelegramFileAsDataURI downloads a file from Telegram by fileID

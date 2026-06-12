@@ -65,12 +65,11 @@ type Message struct {
 }
 
 type ChatMessage struct {
-	Role       string     `json:"role"`
-	Text       string     `json:"text,omitempty"`         // Plain text content
-	Images     []string   `json:"images,omitempty"`       // Base64 data URIs for images
-	Name       string     `json:"name,omitempty"`         // Used in tool calls
-	ToolCallID string     `json:"tool_call_id,omitempty"` // Used in tool calls
-	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
+	Role       string      `json:"role"`
+	Content    interface{} `json:"content"`                // Cannot be empty for tool calls and some terminal commands have no output
+	Name       string      `json:"name,omitempty"`         // Used in tool calls
+	ToolCallID string      `json:"tool_call_id,omitempty"` // Used in tool calls
+	ToolCalls  []ToolCall  `json:"tool_calls,omitempty"`
 }
 
 // ToolCall represents a tool call requested by the model.

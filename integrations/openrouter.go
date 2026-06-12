@@ -83,8 +83,8 @@ Do not use curl directly as it wastes tokens and takes forever, instead you can 
 	}
 
 	return utils.ChatMessage{
-		Role: "system",
-		Text: fmt.Sprintf("directives/core.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s\n\nnotes/general.md: %s\n\nnotes/user%s.md: %s\n", soulBytes, telegramBytes, userJson, generalBytes, strconv.Itoa(user.Id), userNotesBytes),
+		Role:    "system",
+		Content: fmt.Sprintf("directives/core.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s\n\nnotes/general.md: %s\n\nnotes/user%s.md: %s\n", soulBytes, telegramBytes, userJson, generalBytes, strconv.Itoa(user.Id), userNotesBytes),
 	}, nil
 }
 
@@ -184,16 +184,18 @@ func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Datab
 
 		if len(responseMsg.ToolCalls) == 0 {
 			// No tools called, return the text content
-			return responseMsg.Text, nil
+			return responseMsg.Content.(string), nil
 		}
 
-		if responseMsg.Text != "" {
-			sendMessageToPrimaryAccount(responseMsg.Text, user)
+		if responseMsg.Content != "" {
+			if contentStr, ok := responseMsg.Content.(string); ok {
+				sendMessageToPrimaryAccount(contentStr, user)
+			}
 		}
 
 		msgJson, _ := json.Marshal(map[string]interface{}{
 			"role":       "assistant",
-			"text":       responseMsg.Text,
+			"content":    responseMsg.Content,
 			"tool_calls": responseMsg.ToolCalls,
 		})
 
@@ -222,7 +224,7 @@ func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Datab
 					Role:       "tool",
 					Name:       "execute_command",
 					ToolCallID: toolCall.ID,
-					Text:       output,
+					Content:    output,
 				}
 				messages = append(messages, message)
 				toolJson, _ := json.Marshal(message)
@@ -238,7 +240,7 @@ func (o *OpenRouter) chatWithTools(messages []utils.ChatMessage, db *utils.Datab
 					Role:       "tool",
 					Name:       toolCall.Function.Name,
 					ToolCallID: toolCall.ID,
-					Text:       fmt.Sprintf("Error: Unknown tool %s", toolCall.Function.Name),
+					Content:    fmt.Sprintf("Error: Unknown tool %s", toolCall.Function.Name),
 				}
 				messages = append(messages, message)
 				toolJson, _ := json.Marshal(message)
