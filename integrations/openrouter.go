@@ -213,7 +213,8 @@ func (o *OpenRouter) chatWithTools(ctx context.Context, messages []utils.ChatMes
 
 		// Process tool calls
 		for _, toolCall := range responseMsg.ToolCalls {
-			if toolCall.Function.Name == "execute_command" {
+			switch toolCall.Function.Name {
+			case "execute_command":
 				var args ExecuteCommandArgs
 				if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
 					return "", fmt.Errorf("failed to parse tool arguments: %v", err)
@@ -241,7 +242,7 @@ func (o *OpenRouter) chatWithTools(ctx context.Context, messages []utils.ChatMes
 					string(toolJson),
 				)
 
-			} else if toolCall.Function.Name == "append_notes" {
+			case "append_notes":
 				var args AppendNotesArgs
 				if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
 					return "", fmt.Errorf("failed to parse tool arguments: %v", err)
@@ -269,7 +270,7 @@ func (o *OpenRouter) chatWithTools(ctx context.Context, messages []utils.ChatMes
 					string(toolJson),
 				)
 
-			} else {
+			default:
 				message := utils.ChatMessage{
 					Role:       "tool",
 					Name:       toolCall.Function.Name,
