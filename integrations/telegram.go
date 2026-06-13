@@ -85,11 +85,11 @@ func (t *Telegram) Listen() error {
 
 func (t *Telegram) notifyRestart() error {
 	// Only notify if we triggered a restart (marker file exists)
-	if _, err := os.Stat("/tmp/paniniclaw_restarted"); os.IsNotExist(err) {
+	if _, err := os.Stat("paniniclaw_restarted"); os.IsNotExist(err) {
 		return nil
 	}
 	// Clean up the marker
-	os.Remove("/tmp/paniniclaw_restarted")
+	os.Remove("paniniclaw_restarted")
 
 	owner := t.userStore.GetOwner()
 	if owner == nil {
@@ -172,7 +172,7 @@ func (t *Telegram) handleMessage(update tgbotapi.Update) {
 		msg := tgbotapi.NewMessage(chatID, "Restarting... I'll let you know when I'm back.")
 		t.bot.Send(msg)
 		// Write a marker so we know to notify on restart
-		os.WriteFile("/tmp/paniniclaw_restarted", []byte{}, 0644)
+		os.WriteFile("paniniclaw_restarted", []byte{}, 0644)
 		time.Sleep(1 * time.Second)
 		os.Exit(0)
 	}
