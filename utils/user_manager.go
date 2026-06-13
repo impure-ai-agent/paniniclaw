@@ -209,3 +209,12 @@ func ToInt64(val interface{}) int64 {
 	}
 	return 0
 }
+
+func (s *UserStore) GetOwner() *User {
+	for _, user := range s.data.Users {
+		if user.Role == RoleOwner {
+			return &user
+		}
+	}
+	return nil
+}

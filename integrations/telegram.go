@@ -60,6 +60,11 @@ func NewTelegram(
 }
 
 func (t *Telegram) Listen() error {
+	// Notify the owner when the bot starts up
+	if err := t.notifyRestart(); err != nil {
+		fmt.Printf("Failed to send restart notification: %v\n", err)
+	}
+
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 60
 
@@ -74,6 +79,34 @@ func (t *Telegram) Listen() error {
 		go t.handleMessage(update)
 	}
 
+	return nil
+}
+
+
+func (t *Telegram) notifyRestart() error {
+	// Only notify if we triggered a restart (marker file exists)
+	if _, err := os.Stat("paniniclaw_restarted"); os.IsNotExist(err) {
+		return nil
+	}
+	// Clean up the marker
+	os.Remove("paniniclaw_restarted")
+
+	owner := t.userStore.GetOwner()
+	if owner == nil {
+		return nil
+	}
+
+	for _, conn := range owner.Connections {
+		if conn.Provider == "telegram" {
+			chatID := utils.ToInt64(conn.Data["chat_id"])
+			if chatID == 0 {
+				continue
+			}
+			msg := tgbotapi.NewMessage(chatID, "✅ Bot has restarted and is back online.")
+			_, err := t.bot.Send(msg)
+			return err
+		}
+	}
 	return nil
 }
 
@@ -136,8 +169,11 @@ func (t *Telegram) handleMessage(update tgbotapi.Update) {
 		t.bot.Send(msg)
 		return
 	case "/restart":
-		msg := tgbotapi.NewMessage(chatID, "Restarting in 5 seconds.")
+		msg := tgbotapi.NewMessage(chatID, "Restarting... I'll let you know when I'm back.")
 		t.bot.Send(msg)
+		// Write a marker so we know to notify on restart
+		os.WriteFile("paniniclaw_restarted", []byte{}, 0644)
+		time.Sleep(1 * time.Second)
 		os.Exit(0)
 	}
 
