@@ -47,3 +47,4 @@ machine api.github.com
 ## Commands
 
 - **/stop** - Cancel the current response and stop the bot from thinking. Useful if you sent a message by accident or changed your mind.
+- **/restart** - Restarts the service. Note that this does not rebuild it.

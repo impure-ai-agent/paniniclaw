@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"paniniclaw/utils"
 	"sync"
 	"time"
@@ -129,10 +130,15 @@ func (t *Telegram) handleMessage(update tgbotapi.Update) {
 	}
 
 	// Handle /stop command
-	if update.Message.Text == "/stop" {
+	switch update.Message.Text {
+	case "/stop":
 		msg := tgbotapi.NewMessage(chatID, "Stopped.")
 		t.bot.Send(msg)
 		return
+	case "/restart":
+		msg := tgbotapi.NewMessage(chatID, "Restarting in 5 seconds.")
+		t.bot.Send(msg)
+		os.Exit(0)
 	}
 
 	// Build multimodal content if the message contains a photo
