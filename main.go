@@ -36,5 +36,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Start scheduler
+	scheduler := utils.NewScheduler("jobs")
+	scheduler.Start()
+	defer scheduler.Stop()
+
 	log.Fatal(telegram.Listen())
 }
