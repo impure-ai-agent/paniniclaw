@@ -28,8 +28,6 @@ type CronParts struct {
 
 type Scheduler struct {
 	dir      string
-	stopCh   chan struct{}
-	wg       sync.WaitGroup
 	lastRuns map[string]time.Time
 	mu       sync.Mutex
 }
@@ -37,42 +35,24 @@ type Scheduler struct {
 func NewScheduler(dir string) *Scheduler {
 	return &Scheduler{
 		dir:      dir,
-		stopCh:   make(chan struct{}),
 		lastRuns: make(map[string]time.Time),
 	}
 }
 
 func (s *Scheduler) Start() {
-	s.wg.Add(1)
-	go s.loop()
+	os.MkdirAll(s.dir, 0755)
 	log.Printf("[scheduler] Watching directory: %s", s.dir)
-}
-
-func (s *Scheduler) Stop() {
-	close(s.stopCh)
-	s.wg.Wait()
-	log.Printf("[scheduler] Stopped")
+	go s.loop()
 }
 
 func (s *Scheduler) loop() {
-	defer s.wg.Done()
-
-	// Ensure dir exists
-	os.MkdirAll(s.dir, 0755)
-
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	// Initial load
 	s.checkAndRun()
 
-	for {
-		select {
-		case <-ticker.C:
-			s.checkAndRun()
-		case <-s.stopCh:
-			return
-		}
+	for range ticker.C {
+		s.checkAndRun()
 	}
 }
 
@@ -113,7 +93,7 @@ func (s *Scheduler) checkAndRun() {
 		s.mu.Unlock()
 
 		if exists && now.Sub(lastRun) < time.Minute {
-			continue // already ran this minute
+			continue
 		}
 
 		log.Printf("[scheduler] Running job %q (%s)", jobName, job.Schedule)
@@ -138,7 +118,6 @@ func (s *Scheduler) executeJob(name string, job Job, now time.Time) {
 	}
 
 	log.Printf("[scheduler] [%s] %s", timestamp, desc)
-	// POC: just log it. In the future, exec.Command could be used here.
 	_ = cmd
 }
 
@@ -234,7 +213,6 @@ func matchesCron(c CronParts, t time.Time) bool {
 	if !intInSlice(t.Minute(), c.Minute) {
 		return false
 	}
-	// day of week: cron uses 0=Sun, Go uses 0=Sun
 	dow := int(t.Weekday())
 	if !intInSlice(dow, c.DOW) && !intInSlice(7, c.DOW) {
 		return false

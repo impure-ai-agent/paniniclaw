@@ -39,7 +39,6 @@ func main() {
 	// Start scheduler
 	scheduler := utils.NewScheduler("jobs")
 	scheduler.Start()
-	defer scheduler.Stop()
 
 	log.Fatal(telegram.Listen())
 }
