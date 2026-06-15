@@ -1,5 +1,0 @@
-{
-  "schedule": "* * * * *",
-  "description": "Test - runs every minute",
-  "command": "echo 'hello'"
-}
