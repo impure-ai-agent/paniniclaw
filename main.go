@@ -36,8 +36,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Start scheduler
-	scheduler := utils.NewScheduler("jobs")
+	// Start scheduler with OpenRouter client for LLM-powered jobs
+	scheduler := utils.NewScheduler("jobs", openRouter)
 	scheduler.Start()
 
 	log.Fatal(telegram.Listen())

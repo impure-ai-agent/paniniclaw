@@ -162,6 +162,7 @@ func (o *OpenRouter) chatWithTools(ctx context.Context, messages []utils.ChatMes
 
 		reqBody := chatRequest{
 		Model:    o.model,
+			Model:    o.model,
 			Messages: messages,
 			Reasoning: &reasoningConfig{
 				Effort: "none",
@@ -352,7 +353,7 @@ func (o *OpenRouter) rawChat(ctx context.Context, prompt chatRequest) (utils.Cha
 }
 
 func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string) (string, error) {
-	messages := []utils.ChatMessage{
+	messages := []ChatMessage{
 		{
 			Role:    "system",
 			Content: systemPrompt,
@@ -360,6 +361,7 @@ func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string) (string, err
 	}
 
 	reqBody := chatRequest{
+		Model:    o.model,
 		Model:    o.model,
 		Messages: messages,
 		Reasoning: &reasoningConfig{

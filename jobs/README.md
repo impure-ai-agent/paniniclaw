@@ -7,9 +7,9 @@ Drop `.json` files here with a `"schedule"` key using cron syntax.
 ```json
 {
   "schedule": "*/5 * * * *",
-  "description": "Does a thing every 5 minutes",
-  "command": "echo 'hello'"
+  "description": "Summarize the news every 5 minutes",
+  "system_prompt": "You are a news summarizer. Check the latest news and provide a brief summary."
 }
 ```
 
-The `command` field is optional (placeholder for now - proof of concept).
+The `system_prompt` field is optional. If provided, the scheduler will send it as a system prompt to the LLM on the scheduled interval.

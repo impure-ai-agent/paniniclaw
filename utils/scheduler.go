@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,9 +14,9 @@ import (
 )
 
 type Job struct {
-	Schedule    string `json:"schedule"`
-	Description string `json:"description,omitempty"`
-	Command     string `json:"command,omitempty"`
+	Schedule     string `json:"schedule"`
+	Description  string `json:"description,omitempty"`
+	SystemPrompt string `json:"system_prompt,omitempty"`
 }
 
 type CronParts struct {
@@ -26,15 +27,21 @@ type CronParts struct {
 	DOW    []int
 }
 
+type LLMClient interface {
+	Chat(ctx context.Context, systemPrompt string) (string, error)
+}
+
 type Scheduler struct {
 	dir      string
+	client   LLMClient
 	lastRuns map[string]time.Time
 	mu       sync.Mutex
 }
 
-func NewScheduler(dir string) *Scheduler {
+func NewScheduler(dir string, client LLMClient) *Scheduler {
 	return &Scheduler{
 		dir:      dir,
+		client:   client,
 		lastRuns: make(map[string]time.Time),
 	}
 }
@@ -97,28 +104,26 @@ func (s *Scheduler) checkAndRun() {
 		}
 
 		log.Printf("[scheduler] Running job %q (%s)", jobName, job.Schedule)
-		s.executeJob(jobName, job, now)
+
+		if job.SystemPrompt != "" && s.client != nil {
+			go func(name, prompt string) {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+				defer cancel()
+
+				log.Printf("[scheduler] Sending LLM request for job %q", name)
+				result, err := s.client.Chat(ctx, prompt)
+				if err != nil {
+					log.Printf("[scheduler] Job %q LLM request failed: %v", name, err)
+				} else {
+					log.Printf("[scheduler] Job %q LLM response: %s", name, result)
+				}
+			}(jobName, job.SystemPrompt)
+		}
 
 		s.mu.Lock()
 		s.lastRuns[jobName] = now
 		s.mu.Unlock()
 	}
-}
-
-func (s *Scheduler) executeJob(name string, job Job, now time.Time) {
-	cmd := job.Command
-	if cmd == "" {
-		cmd = fmt.Sprintf("echo 'Job %q triggered at %s'", name, now.Format(time.RFC3339))
-	}
-
-	timestamp := now.Format("2006-01-02 15:04:05")
-	desc := job.Description
-	if desc == "" {
-		desc = name
-	}
-
-	log.Printf("[scheduler] [%s] %s", timestamp, desc)
-	_ = cmd
 }
 
 func loadJob(path string) (Job, error) {

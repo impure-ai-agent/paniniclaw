@@ -1,5 +1,5 @@
 {
   "schedule": "* * * * *",
   "description": "Test - runs every minute",
-  "command": "echo 'hello'"
+  "system_prompt": "Respond with only the word 'ok' and nothing else."
 }
