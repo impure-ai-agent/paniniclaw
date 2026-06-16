@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"log"
 	"os"
+	"strconv"
 	"paniniclaw/utils"
 	"sync"
 	"time"
@@ -388,4 +390,18 @@ func downloadTelegramFileAsDataURI(bot *tgbotapi.BotAPI, fileID string) (string,
 	dataURI := fmt.Sprintf("data:%s;base64,%s", mimeType, encoded)
 
 	return dataURI, nil
+}
+
+func (t *Telegram) SendMessage(chatId string, text string) {
+	chatIdInt, err := strconv.ParseInt(chatId, 10, 64)
+	if err != nil {
+		log.Printf("[telegram] invalid chat ID %q: %v", chatId, err)
+		return
+	}
+
+	msg := tgbotapi.NewMessage(chatIdInt, text)
+	_, err = t.bot.Send(msg)
+	if err != nil {
+		log.Printf("[telegram] failed to send message to %s: %v", chatId, err)
+	}
 }

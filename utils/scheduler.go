@@ -15,6 +15,7 @@ import (
 
 type Job struct {
 	Schedule     string `json:"schedule"`
+	Name         string `json:"name,omitempty"`
 	Description  string `json:"description,omitempty"`
 	SystemPrompt string `json:"system_prompt,omitempty"`
 }
@@ -31,17 +32,23 @@ type LLMClient interface {
 	Chat(ctx context.Context, systemPrompt string) (string, error)
 }
 
+type MessageSender func(chatId, text string)
+
 type Scheduler struct {
 	dir      string
 	client   LLMClient
+	send     MessageSender
+	chatId   string
 	lastRuns map[string]time.Time
 	mu       sync.Mutex
 }
 
-func NewScheduler(dir string, client LLMClient) *Scheduler {
+func NewScheduler(dir string, client LLMClient, send MessageSender, chatId string) *Scheduler {
 	return &Scheduler{
 		dir:      dir,
 		client:   client,
+		send:     send,
+		chatId:   chatId,
 		lastRuns: make(map[string]time.Time),
 	}
 }
@@ -113,9 +120,17 @@ func (s *Scheduler) checkAndRun() {
 				log.Printf("[scheduler] Sending LLM request for job %q", name)
 				result, err := s.client.Chat(ctx, prompt)
 				if err != nil {
-					log.Printf("[scheduler] Job %q LLM request failed: %v", name, err)
+					errMsg := fmt.Sprintf("⚠️ Job %q failed: %v", name, err)
+					log.Printf("[scheduler] %s", errMsg)
+					if s.send != nil {
+						s.send(s.chatId, errMsg)
+					}
 				} else {
-					log.Printf("[scheduler] Job %q LLM response: %s", name, result)
+					msg := fmt.Sprintf("📋 Job %q:\n%s", name, result)
+					log.Printf("[scheduler] Job %q completed", name)
+					if s.send != nil {
+						s.send(s.chatId, msg)
+					}
 				}
 			}(jobName, job.SystemPrompt)
 		}

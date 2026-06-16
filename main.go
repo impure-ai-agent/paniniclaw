@@ -36,9 +36,30 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Start scheduler with OpenRouter client for LLM-powered jobs
-	scheduler := utils.NewScheduler("jobs", openRouter)
-	scheduler.Start()
+	// Get owner's Telegram chat ID for scheduler notifications
+	owner := userStore.GetOwner()
+	var ownerChatId string
+	if owner != nil {
+		for _, conn := range owner.Connections {
+			if conn.Provider == "telegram" {
+				ownerChatId, _ = conn.Data["chat_id"].(string)
+				break
+			}
+		}
+	}
+
+	// Start scheduler
+	if ownerChatId != "" {
+		scheduler := utils.NewScheduler(
+			"jobs",
+			openRouter,
+			telegram.SendMessage,
+			ownerChatId,
+		)
+		scheduler.Start()
+	} else {
+		log.Println("[scheduler] No owner chat ID found, scheduler disabled")
+	}
 
 	log.Fatal(telegram.Listen())
 }
