@@ -58,11 +58,11 @@ func main() {
 	if ownerChatId != "" {
 		scheduler := utils.NewScheduler(
 			"tasks",
-			openRouter,
 			telegram.SendMessage,
 			ownerChatId,
 		)
 		scheduler.Start()
+		openRouter.OnEndTask = scheduler.EndTask
 		telegram.SetScheduler(scheduler)
 	} else {
 		log.Println("[scheduler] No owner chat ID found, scheduler disabled")
