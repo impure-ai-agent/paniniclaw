@@ -29,7 +29,7 @@ type CronParts struct {
 }
 
 type LLMClient interface {
-	Chat(ctx context.Context, task string) (string, error)
+	Chat(ctx context.Context, task string, onMessage func(string)) (string, error)
 }
 
 type MessageSender func(chatId, text string)
@@ -152,8 +152,22 @@ func (s *Scheduler) checkAndRun() {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 				defer cancel()
 
-				log.Printf("[scheduler] Sending LLM request for job %q", name)
-				result, err := s.client.Chat(ctx, prompt)
+				log.Printf("[scheduler] Sending LLM request for task %q", name)
+
+				// Send each message from the LLM as it comes
+				msgCount := 0
+				result, err := s.client.Chat(ctx, prompt, func(msg string) {
+					msgCount++
+					var full string
+					if msgCount == 1 {
+						full = fmt.Sprintf("📋 Task %q:\n%s", name, msg)
+					} else {
+						full = fmt.Sprintf("📋 Task %q (continued):\n%s", name, msg)
+					}
+					if s.send != nil {
+						s.send(s.chatId, full)
+					}
+				})
 				if err != nil {
 					errMsg := fmt.Sprintf("⚠️ Task %q failed: %v", name, err)
 					log.Printf("[scheduler] %s", errMsg)
@@ -161,11 +175,8 @@ func (s *Scheduler) checkAndRun() {
 						s.send(s.chatId, errMsg)
 					}
 				} else {
-					msg := fmt.Sprintf("📋 Task %q:\n%s", name, result)
 					log.Printf("[scheduler] Task %q completed", name)
-					if s.send != nil {
-						s.send(s.chatId, msg)
-					}
+					_ = result
 				}
 			}(displayName, job.Task)
 		}

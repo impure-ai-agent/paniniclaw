@@ -351,11 +351,11 @@ func (o *OpenRouter) rawChat(ctx context.Context, prompt chatRequest) (utils.Cha
 	return result.Choices[0].Message, nil
 }
 
-func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string) (string, error) {
+func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string, onMessage func(string)) (string, error) {
 	messages := []utils.ChatMessage{
 		{
 			Role:    "system",
-			Content: systemPrompt + "\n\nYou have access to tools: execute_command (run bash commands), append_notes (save info to notes), and web_search. Use them to accomplish the task. When you're done, call end_task.",
+			Content: systemPrompt + "\n\nYou have access to tools: execute_command (run bash commands), and web_search. Use them to accomplish the task. When you are done, call end_task.",
 		},
 	}
 
@@ -372,7 +372,6 @@ func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string) (string, err
 			MaxTokens: 10_000,
 			Tools: []Tool{
 				TerminalTool,
-				AppendNotesTool,
 				EndTaskTool,
 				{
 					Type: "openrouter:web_search",
@@ -390,6 +389,15 @@ func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string) (string, err
 		}
 
 		messages = append(messages, responseMsg)
+
+		// Send intermediate text to user if present
+		if responseMsg.Content != "" {
+			if contentStr, ok := responseMsg.Content.(string); ok {
+				if onMessage != nil {
+					onMessage(contentStr)
+				}
+			}
+		}
 
 		if len(responseMsg.ToolCalls) == 0 {
 			content, ok := responseMsg.Content.(string)
