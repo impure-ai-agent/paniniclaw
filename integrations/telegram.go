@@ -422,28 +422,3 @@ func (t *Telegram) SendMessage(chatId string, text string) {
 		log.Printf("[telegram] failed to send message to %s: %v", chatId, err)
 	}
 }
-
-func (t *Telegram) TriggerTask(chatId string, taskName string, taskPrompt string) {
-	chatIdInt, err := strconv.ParseInt(chatId, 10, 64)
-	if err != nil {
-		log.Printf("[telegram] invalid chat ID for task: %v", err)
-		return
-	}
-
-	// Create a synthetic user message containing the task
-	msg := tgbotapi.Message{
-		Chat: &tgbotapi.Chat{ID: chatIdInt},
-		From: &tgbotapi.User{ID: utils.ToInt64(chatId)},
-		Text: taskPrompt,
-	}
-
-	update := tgbotapi.Update{
-		Message: &msg,
-	}
-
-	// Send notification that task started
-	t.SendMessage(chatId, fmt.Sprintf("📋 **Task Started: %s**", taskName))
-
-	// Route through the normal message handler
-	go t.handleMessage(update)
-}

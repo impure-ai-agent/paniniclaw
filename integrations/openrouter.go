@@ -14,9 +14,8 @@ import (
 )
 
 type OpenRouter struct {
-	OnEndTask func()
-	apiKey    string
-	model     string
+	apiKey string
+	model  string
 }
 
 func NewOpenRouter(apiKey string) *OpenRouter {
@@ -350,4 +349,128 @@ func (o *OpenRouter) rawChat(ctx context.Context, prompt chatRequest) (utils.Cha
 	}
 
 	return result.Choices[0].Message, nil
+}
+
+func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string, onMessage func(string)) (string, error) {
+	messages := []utils.ChatMessage{
+		{
+			Role:    "system",
+			Content: systemPrompt + "\n\nYou have access to tools: execute_command (run bash commands), and web_search. Use them to accomplish the task. When you are done, call end_task.",
+		},
+	}
+
+	const maxIterations = 50
+	for i := 0; i < maxIterations; i++ {
+		allowFallbacks := true
+
+		reqBody := chatRequest{
+			Model:    o.model,
+			Messages: messages,
+			Reasoning: &reasoningConfig{
+				Effort: "none",
+			},
+			MaxTokens: 10_000,
+			Tools: []Tool{
+				TerminalTool,
+				EndTaskTool,
+				{
+					Type: "openrouter:web_search",
+				},
+			},
+			Provider: &providerConfig{
+				Order:          []string{"novita"},
+				AllowFallbacks: &allowFallbacks,
+			},
+		}
+
+		responseMsg, err := o.rawChat(ctx, reqBody)
+		if err != nil {
+			return "", err
+		}
+
+		messages = append(messages, responseMsg)
+
+		// Send intermediate text to user if present
+		if responseMsg.Content != "" {
+			if contentStr, ok := responseMsg.Content.(string); ok {
+				if onMessage != nil {
+					onMessage(contentStr)
+				}
+			}
+		}
+
+		if len(responseMsg.ToolCalls) == 0 {
+			content, ok := responseMsg.Content.(string)
+			if !ok {
+				return "", fmt.Errorf("unexpected non-string content type")
+			}
+			return content, nil
+		}
+
+		for _, toolCall := range responseMsg.ToolCalls {
+			switch toolCall.Function.Name {
+			case "execute_command":
+				var args ExecuteCommandArgs
+				if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
+					return "", fmt.Errorf("failed to parse tool arguments: %v", err)
+				}
+
+				print("Executing command:", args.Command)
+				output, err := ExecuteCommand(args.Command)
+				if err != nil {
+					output = fmt.Sprintf("Error: %v\nOutput: %s", err, output)
+				}
+				println("Output:", output)
+
+				message := utils.ChatMessage{
+					Role:       "tool",
+					Name:       "execute_command",
+					ToolCallID: toolCall.ID,
+					Content:    output,
+				}
+				messages = append(messages, message)
+
+			case "append_notes":
+				var args AppendNotesArgs
+				if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
+					return "", fmt.Errorf("failed to parse tool arguments: %v", err)
+				}
+
+				print("Appending to notes:", args.Content, "scope:", args.Scope)
+				output, err := AppendNotes(args.Content, args.Scope, 0)
+				if err != nil {
+					output = fmt.Sprintf("Error: %v", err)
+				}
+				println("Output:", output)
+
+				message := utils.ChatMessage{
+					Role:       "tool",
+					Name:       "append_notes",
+					ToolCallID: toolCall.ID,
+					Content:    output,
+				}
+				messages = append(messages, message)
+
+			case "end_task":
+				message := utils.ChatMessage{
+					Role:       "tool",
+					Name:       "end_task",
+					ToolCallID: toolCall.ID,
+					Content:    "Task ended.",
+				}
+				messages = append(messages, message)
+
+			default:
+				message := utils.ChatMessage{
+					Role:       "tool",
+					Name:       toolCall.Function.Name,
+					ToolCallID: toolCall.ID,
+					Content:    fmt.Sprintf("Error: Unknown tool %s", toolCall.Function.Name),
+				}
+				messages = append(messages, message)
+			}
+		}
+	}
+
+	return "", fmt.Errorf("exceeded max tool call iterations")
 }
