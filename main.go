@@ -59,9 +59,9 @@ func main() {
 		scheduler := utils.NewScheduler(
 			"tasks",
 			telegram.SendMessage,
+			telegram.TriggerTask,
 			ownerChatId,
 		)
-		scheduler.Start()
 		openRouter.OnEndTask = scheduler.EndTask
 		telegram.SetScheduler(scheduler)
 	} else {

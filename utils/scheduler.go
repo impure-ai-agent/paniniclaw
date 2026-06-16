@@ -28,10 +28,12 @@ type CronParts struct {
 }
 
 type MessageSender func(chatId, text string)
+type TaskTrigger func(chatId, taskName, taskPrompt string)
 
 type Scheduler struct {
 	dir         string
 	send        MessageSender
+	trigger     TaskTrigger
 	chatId      string
 	lastRuns    map[string]time.Time
 	mu          sync.Mutex
@@ -39,10 +41,11 @@ type Scheduler struct {
 	taskMu      sync.RWMutex
 }
 
-func NewScheduler(dir string, send MessageSender, chatId string) *Scheduler {
+func NewScheduler(dir string, send MessageSender, trigger TaskTrigger, chatId string) *Scheduler {
 	return &Scheduler{
 		dir:      dir,
 		send:     send,
+		trigger:  trigger,
 		chatId:   chatId,
 		lastRuns: make(map[string]time.Time),
 	}
@@ -141,10 +144,9 @@ func (s *Scheduler) checkAndRun() {
 			}
 			s.setTask(displayName)
 
-			// Send the task prompt to Telegram chat - the normal chat loop handles it
-			if s.send != nil {
-				msg := fmt.Sprintf("📋 **Task Started: %s**\n\n%s\n\n_When the task is complete, I will end it automatically._", displayName, job.Task)
-				s.send(s.chatId, msg)
+			// Trigger the task through the Telegram handler's normal chat loop
+			if s.trigger != nil {
+				s.trigger(s.chatId, displayName, job.Task)
 			}
 			log.Printf("[scheduler] Started task %q", displayName)
 		}
