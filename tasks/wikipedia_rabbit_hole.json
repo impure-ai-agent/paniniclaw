@@ -1,0 +1,6 @@
+{
+  "schedule": "11 5 * * *",
+  "name": "Wikipedia Rabbit Hole",
+  "description": "Fetches a random Wikipedia article and summarizes it",
+  "task": "Your task is to visit https://en.wikipedia.org/wiki/Special:Random using clean_curl.py, read the content, and tell the user what the article is about and share something interesting from it. When you are done, call the end_task tool."
+}

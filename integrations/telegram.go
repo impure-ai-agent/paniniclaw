@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"paniniclaw/utils"
+	"strconv"
 	"sync"
 	"time"
 
@@ -21,6 +23,7 @@ type Telegram struct {
 	db         *utils.Database
 	userStore  *utils.UserStore
 	openRouter *OpenRouter
+	scheduler  *utils.Scheduler
 
 	mu          sync.Mutex
 	cancelFuncs map[int64]context.CancelFunc
@@ -59,6 +62,10 @@ func NewTelegram(
 	return primaryAccount, nil
 }
 
+func (t *Telegram) SetScheduler(s *utils.Scheduler) {
+	t.scheduler = s
+}
+
 func (t *Telegram) Listen() error {
 	// Notify the owner when the bot starts up
 	if err := t.notifyRestart(); err != nil {
@@ -75,13 +82,25 @@ func (t *Telegram) Listen() error {
 			continue
 		}
 
+		// Handle /end_task command
+		if update.Message.IsCommand() && update.Message.Command() == "end_task" {
+			if t.scheduler != nil && t.scheduler.GetCurrentTask() != "" {
+				t.scheduler.EndTask()
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "✅ Task ended.")
+				t.bot.Send(msg)
+			} else {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "No active task to end.")
+				t.bot.Send(msg)
+			}
+			continue
+		}
+
 		// Handle each message in its own goroutine so we don't block the event loop
 		go t.handleMessage(update)
 	}
 
 	return nil
 }
-
 
 func (t *Telegram) notifyRestart() error {
 	// Only notify if we triggered a restart (marker file exists)
@@ -388,4 +407,18 @@ func downloadTelegramFileAsDataURI(bot *tgbotapi.BotAPI, fileID string) (string,
 	dataURI := fmt.Sprintf("data:%s;base64,%s", mimeType, encoded)
 
 	return dataURI, nil
+}
+
+func (t *Telegram) SendMessage(chatId string, text string) {
+	chatIdInt, err := strconv.ParseInt(chatId, 10, 64)
+	if err != nil {
+		log.Printf("[telegram] invalid chat ID %q: %v", chatId, err)
+		return
+	}
+
+	msg := tgbotapi.NewMessage(chatIdInt, text)
+	_, err = t.bot.Send(msg)
+	if err != nil {
+		log.Printf("[telegram] failed to send message to %s: %v", chatId, err)
+	}
 }
