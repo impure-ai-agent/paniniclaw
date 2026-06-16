@@ -176,6 +176,9 @@ func (s *Scheduler) checkAndRun() {
 					}
 				} else {
 					log.Printf("[scheduler] Task %q completed", name)
+					if s.send != nil {
+						s.send(s.chatId, fmt.Sprintf("✅ Task %q completed.", name))
+					}
 					_ = result
 				}
 			}(displayName, job.Task)
