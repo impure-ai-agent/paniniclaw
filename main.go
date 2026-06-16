@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"paniniclaw/integrations"
 	"paniniclaw/utils"
@@ -42,7 +43,12 @@ func main() {
 	if owner != nil {
 		for _, conn := range owner.Connections {
 			if conn.Provider == "telegram" {
-				ownerChatId, _ = conn.Data["chat_id"].(string)
+				switch v := conn.Data["chat_id"].(type) {
+				case string:
+					ownerChatId = v
+				case float64:
+					ownerChatId = fmt.Sprintf("%.0f", v)
+				}
 				break
 			}
 		}
