@@ -133,7 +133,7 @@ func (s *Scheduler) checkAndRun() {
 			continue
 		}
 
-		log.Printf("[scheduler] Running job %q (%s)", jobName, job.Schedule)
+		log.Printf("[scheduler] Running task %q (%s)", jobName, job.Schedule)
 
 		if job.SystemPrompt != "" && s.client != nil {
 			// Don't start a new task if one is already running
@@ -155,14 +155,14 @@ func (s *Scheduler) checkAndRun() {
 				log.Printf("[scheduler] Sending LLM request for job %q", name)
 				result, err := s.client.Chat(ctx, prompt)
 				if err != nil {
-					errMsg := fmt.Sprintf("⚠️ Job %q failed: %v", name, err)
+					errMsg := fmt.Sprintf("⚠️ Task %q failed: %v", name, err)
 					log.Printf("[scheduler] %s", errMsg)
 					if s.send != nil {
 						s.send(s.chatId, errMsg)
 					}
 				} else {
-					msg := fmt.Sprintf("📋 Job %q:\n%s", name, result)
-					log.Printf("[scheduler] Job %q completed", name)
+					msg := fmt.Sprintf("📋 Task %q:\n%s", name, result)
+					log.Printf("[scheduler] Task %q completed", name)
 					if s.send != nil {
 						s.send(s.chatId, msg)
 					}

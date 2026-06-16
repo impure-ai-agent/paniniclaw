@@ -1,4 +1,4 @@
-# Scheduled Jobs
+# Scheduled Tasks
 
 Drop `.json` files here with a `"schedule"` key using cron syntax.
 
@@ -7,6 +7,7 @@ Drop `.json` files here with a `"schedule"` key using cron syntax.
 ```json
 {
   "schedule": "*/5 * * * *",
+  "name": "News Summary",
   "description": "Summarize the news every 5 minutes",
   "system_prompt": "You are a news summarizer. Check the latest news and provide a brief summary."
 }

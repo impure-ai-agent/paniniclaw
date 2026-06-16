@@ -51,7 +51,7 @@ func main() {
 	// Start scheduler
 	if ownerChatId != "" {
 		scheduler := utils.NewScheduler(
-			"jobs",
+			"tasks",
 			openRouter,
 			telegram.SendMessage,
 			ownerChatId,
