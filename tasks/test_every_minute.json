@@ -1,6 +1,0 @@
-{
-  "schedule": "* * * * *",
-  "name": "Minute Test",
-  "description": "Runs every minute to verify scheduler is working",
-  "system_prompt": "Respond with only the word 'ok' and nothing else."
-}

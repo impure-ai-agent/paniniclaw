@@ -17,7 +17,7 @@ type Job struct {
 	Schedule     string `json:"schedule"`
 	Name         string `json:"name,omitempty"`
 	Description  string `json:"description,omitempty"`
-	SystemPrompt string `json:"system_prompt,omitempty"`
+	Task string `json:"task,omitempty"`
 }
 
 type CronParts struct {
@@ -29,7 +29,7 @@ type CronParts struct {
 }
 
 type LLMClient interface {
-	Chat(ctx context.Context, systemPrompt string) (string, error)
+	Chat(ctx context.Context, task string) (string, error)
 }
 
 type MessageSender func(chatId, text string)
@@ -135,7 +135,7 @@ func (s *Scheduler) checkAndRun() {
 
 		log.Printf("[scheduler] Running task %q (%s)", jobName, job.Schedule)
 
-		if job.SystemPrompt != "" && s.client != nil {
+		if job.Task != "" && s.client != nil {
 			// Don't start a new task if one is already running
 			if s.GetCurrentTask() != "" {
 				log.Printf("[scheduler] Task %q already active, skipping job %q", s.GetCurrentTask(), jobName)
@@ -167,7 +167,7 @@ func (s *Scheduler) checkAndRun() {
 						s.send(s.chatId, msg)
 					}
 				}
-			}(displayName, job.SystemPrompt)
+			}(displayName, job.Task)
 		}
 
 		s.mu.Lock()
