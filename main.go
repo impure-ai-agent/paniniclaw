@@ -57,6 +57,7 @@ func main() {
 			ownerChatId,
 		)
 		scheduler.Start()
+		telegram.SetScheduler(scheduler)
 	} else {
 		log.Println("[scheduler] No owner chat ID found, scheduler disabled")
 	}

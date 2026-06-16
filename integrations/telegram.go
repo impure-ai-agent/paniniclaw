@@ -23,6 +23,7 @@ type Telegram struct {
 	db         *utils.Database
 	userStore  *utils.UserStore
 	openRouter *OpenRouter
+	scheduler  *utils.Scheduler
 
 	mu          sync.Mutex
 	cancelFuncs map[int64]context.CancelFunc
@@ -61,6 +62,10 @@ func NewTelegram(
 	return primaryAccount, nil
 }
 
+func (t *Telegram) SetScheduler(s *utils.Scheduler) {
+	t.scheduler = s
+}
+
 func (t *Telegram) Listen() error {
 	// Notify the owner when the bot starts up
 	if err := t.notifyRestart(); err != nil {
@@ -74,6 +79,19 @@ func (t *Telegram) Listen() error {
 
 	for update := range updates {
 		if update.Message == nil {
+			continue
+		}
+
+		// Handle /end_task command
+		if update.Message.IsCommand() && update.Message.Command() == "end_task" {
+			if t.scheduler != nil && t.scheduler.GetCurrentTask() != "" {
+				t.scheduler.EndTask()
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "✅ Task ended.")
+				t.bot.Send(msg)
+			} else {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "No active task to end.")
+				t.bot.Send(msg)
+			}
 			continue
 		}
 

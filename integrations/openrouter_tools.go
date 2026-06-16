@@ -124,3 +124,16 @@ func AppendNotes(content string, scope string, userId int) (string, error) {
 
 	return fmt.Sprintf("Appended to %s", path), nil
 }
+
+// Define the schema for the end_task tool.
+var EndTaskTool = Tool{
+	Type: "function",
+	Function: FunctionDefinition{
+		Name:        "end_task",
+		Description: "Mark the currently active scheduled task as complete. Call this when you have finished executing the task's objective.",
+		Parameters: map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+		},
+	},
+}

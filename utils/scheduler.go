@@ -35,12 +35,14 @@ type LLMClient interface {
 type MessageSender func(chatId, text string)
 
 type Scheduler struct {
-	dir      string
-	client   LLMClient
-	send     MessageSender
-	chatId   string
-	lastRuns map[string]time.Time
-	mu       sync.Mutex
+	dir         string
+	client      LLMClient
+	send        MessageSender
+	chatId      string
+	lastRuns    map[string]time.Time
+	mu          sync.Mutex
+	currentTask string // name of the currently active task, empty if none
+	taskMu      sync.RWMutex
 }
 
 func NewScheduler(dir string, client LLMClient, send MessageSender, chatId string) *Scheduler {
@@ -68,6 +70,27 @@ func (s *Scheduler) loop() {
 	for range ticker.C {
 		s.checkAndRun()
 	}
+}
+
+func (s *Scheduler) GetCurrentTask() string {
+	s.taskMu.RLock()
+	defer s.taskMu.RUnlock()
+	return s.currentTask
+}
+
+func (s *Scheduler) EndTask() {
+	s.taskMu.Lock()
+	defer s.taskMu.Unlock()
+	if s.currentTask != "" {
+		log.Printf("[scheduler] Ending task %q", s.currentTask)
+		s.currentTask = ""
+	}
+}
+
+func (s *Scheduler) setTask(name string) {
+	s.taskMu.Lock()
+	defer s.taskMu.Unlock()
+	s.currentTask = name
 }
 
 func (s *Scheduler) checkAndRun() {
@@ -113,7 +136,19 @@ func (s *Scheduler) checkAndRun() {
 		log.Printf("[scheduler] Running job %q (%s)", jobName, job.Schedule)
 
 		if job.SystemPrompt != "" && s.client != nil {
+			// Don't start a new task if one is already running
+			if s.GetCurrentTask() != "" {
+				log.Printf("[scheduler] Task %q already active, skipping job %q", s.GetCurrentTask(), jobName)
+				continue
+			}
+
+			displayName := jobName
+			if job.Name != "" { displayName = job.Name }
+			s.setTask(displayName)
+
 			go func(name, prompt string) {
+				defer s.EndTask()
+
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 				defer cancel()
 
@@ -132,7 +167,7 @@ func (s *Scheduler) checkAndRun() {
 						s.send(s.chatId, msg)
 					}
 				}
-			}(jobName, job.SystemPrompt)
+			}(displayName, job.SystemPrompt)
 		}
 
 		s.mu.Lock()
