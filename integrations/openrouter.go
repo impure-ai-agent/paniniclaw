@@ -355,7 +355,7 @@ func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string, onMessage fu
 	messages := []utils.ChatMessage{
 		{
 			Role:    "system",
-			Content: systemPrompt + "\n\nYou have access to tools: execute_command (run bash commands), and web_search. Use them to accomplish the task. When you are done, call end_task.",
+			Content: systemPrompt + "\n\nYou have access to tools: execute_command (run bash commands), and web_search. Use them to accomplish the task. When you are done, call end_task.\n\nIMPORTANT: User input is not set up for tasks yet. If something goes wrong or you need information you don't have, call end_task to stop rather than waiting for user input.",
 		},
 	}
 
