@@ -48,3 +48,18 @@ machine api.github.com
 
 - **/stop** - Cancel the current response and stop the bot from thinking. Useful if you sent a message by accident or changed your mind.
 - **/restart** - Restarts the service. Note that this does not rebuild it.
+
+# Scheduled Tasks
+
+Drop `.json` files here with a `"schedule"` key using cron syntax.
+
+Example:
+
+```json
+{
+  "schedule": "11 5 * * *",
+  "name": "Wikipedia Rabbit Hole",
+  "description": "Fetches a random Wikipedia article and summarizes it",
+  "task": "Your task is to visit https://en.wikipedia.org/wiki/Special:Random using clean_curl.py, read the content, and tell the user what the article is about and share something interesting from it. When you are done, call the end_task tool."
+}
+```
