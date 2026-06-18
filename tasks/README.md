@@ -13,4 +13,4 @@ Drop `.json` files here with a `"schedule"` key using cron syntax.
 }
 ```
 
-The `task` field is optional. If provided, the scheduler will send it as a system prompt to the LLM on the scheduled interval.
+The `task` field is required. The scheduler will send it as a system prompt to the LLM on the scheduled interval.
