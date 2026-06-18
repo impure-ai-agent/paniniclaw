@@ -12,3 +12,6 @@ std.log
 # agent notes
 notes/
 directives/
+
+# Scheduled tasks
+tasks/
