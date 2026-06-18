@@ -14,10 +14,9 @@ import (
 )
 
 type Job struct {
-	Schedule    string `json:"schedule"`
-	Name        string `json:"name,omitempty"`
-	Description string `json:"description,omitempty"`
-	Task        string `json:"task,omitempty"`
+	Schedule string `json:"schedule"`
+	Name     string `json:"name"`
+	Task     string `json:"task"`
 }
 
 type CronParts struct {
