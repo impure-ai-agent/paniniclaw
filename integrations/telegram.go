@@ -11,6 +11,7 @@ import (
 	"os"
 	"paniniclaw/utils"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -90,6 +91,50 @@ func (t *Telegram) Listen() error {
 				t.bot.Send(msg)
 			} else {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "No active task to end.")
+				t.bot.Send(msg)
+			}
+			continue
+		}
+
+		// Handle /run_task command
+		if update.Message.IsCommand() && update.Message.Command() == "run_task" {
+			if t.scheduler != nil {
+				args := update.Message.CommandArguments()
+				if args == "" {
+					names, err := t.scheduler.ListTaskNames()
+					if err != nil {
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, "⚠️ Could not list tasks: "+err.Error())
+						t.bot.Send(msg)
+					} else if len(names) == 0 {
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, "No tasks available.")
+						t.bot.Send(msg)
+					} else {
+						var sb strings.Builder
+						sb.WriteString("Available tasks:\n")
+						for _, n := range names {
+							sb.WriteString("  - " + n + "\n")
+						}
+						sb.WriteString("\nUse /run_task <name> to start one.")
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, sb.String())
+						t.bot.Send(msg)
+					}
+				} else {
+					if t.scheduler.GetCurrentTask() != "" {
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, "⚠️ A task is already running. Wait for it to finish or use /end_task first.")
+						t.bot.Send(msg)
+					} else {
+						err := t.scheduler.RunTaskByName(args)
+						if err != nil {
+							msg := tgbotapi.NewMessage(update.Message.Chat.ID, "⚠️ "+err.Error())
+							t.bot.Send(msg)
+						} else {
+							msg := tgbotapi.NewMessage(update.Message.Chat.ID, "▶️ Running task \""+args+"\"...")
+							t.bot.Send(msg)
+						}
+					}
+				}
+			} else {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Scheduler is not running.")
 				t.bot.Send(msg)
 			}
 			continue

@@ -63,3 +63,12 @@ Example:
   "task": "Your task is to visit https://en.wikipedia.org/wiki/Special:Random using clean_curl.py, read the content, and tell the user what the article is about and share something interesting from it. When you are done, call the end_task tool."
 }
 ```
+
+## Running Tasks On Demand
+
+You can also trigger a task immediately by sending the `/run_task` command to the bot:
+
+- `/run_task` - Lists all available tasks
+- `/run_task blog_post_writer` - Runs the specified task immediately (if no other task is currently running)
+
+You can cancel a running task with `/end_task`.
