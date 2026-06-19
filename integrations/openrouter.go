@@ -351,7 +351,7 @@ func (o *OpenRouter) rawChat(ctx context.Context, prompt chatRequest) (utils.Cha
 	return result.Choices[0].Message, nil
 }
 
-func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string, onMessage func(string)) (string, error) {
+func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string, model string, onMessage func(string)) (string, error) {
 	messages := []utils.ChatMessage{
 		{
 			Role:    "system",
@@ -363,8 +363,12 @@ func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string, onMessage fu
 	for i := 0; i < maxIterations; i++ {
 		allowFallbacks := true
 
+		useModel := o.model
+		if model != "" {
+			useModel = model
+		}
 		reqBody := chatRequest{
-			Model:    o.model,
+			Model:    useModel,
 			Messages: messages,
 			Reasoning: &reasoningConfig{
 				Effort: "none",

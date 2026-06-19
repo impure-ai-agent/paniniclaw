@@ -14,6 +14,7 @@ import (
 )
 
 type Job struct {
+	Model    string `json:"model,omitempty"`
 	Schedule string `json:"schedule"`
 	Name     string `json:"name"`
 	Task     string `json:"task"`
@@ -28,7 +29,7 @@ type CronParts struct {
 }
 
 type LLMClient interface {
-	Chat(ctx context.Context, task string, onMessage func(string)) (string, error)
+	Chat(ctx context.Context, task string, model string, onMessage func(string)) (string, error)
 }
 
 type MessageSender func(chatId, text string)
@@ -157,7 +158,7 @@ func (s *Scheduler) checkAndRun() {
 
 				// Send each message from the LLM as it comes
 				msgCount := 0
-				result, err := s.client.Chat(ctx, prompt, func(msg string) {
+				result, err := s.client.Chat(ctx, prompt, job.Model, func(msg string) {
 					msgCount++
 					var full string
 					if msgCount == 1 {
