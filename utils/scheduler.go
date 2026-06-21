@@ -7,10 +7,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/robfig/cron/v3"
 )
 
 type Job struct {
@@ -18,14 +19,6 @@ type Job struct {
 	Schedule string `json:"schedule"`
 	Name     string `json:"name"`
 	Task     string `json:"task"`
-}
-
-type CronParts struct {
-	Minute []int
-	Hour   []int
-	DOM    []int
-	Month  []int
-	DOW    []int
 }
 
 type LLMClient interface {
@@ -187,13 +180,16 @@ func (s *Scheduler) checkAndRun() {
 			continue
 		}
 
-		cron, err := parseCron(job.Schedule)
+		// Use robfig/cron to check if the schedule matches the current time
+		sched, err := cron.ParseStandard(job.Schedule)
 		if err != nil {
 			log.Printf("[scheduler] %s: invalid schedule %q: %v", entry.Name(), job.Schedule, err)
 			continue
 		}
 
-		if !matchesCron(cron, now) {
+		// A schedule matches if the next time it fires is within this minute
+		next := sched.Next(now.Truncate(time.Minute).Add(-time.Minute))
+		if next.After(now) || next.Before(now.Truncate(time.Minute)) {
 			continue
 		}
 
@@ -246,94 +242,4 @@ func loadJob(path string) (Job, error) {
 	}
 
 	return job, nil
-}
-
-func parseCron(schedule string) (CronParts, error) {
-	parts := strings.Fields(schedule)
-	if len(parts) != 5 {
-		return CronParts{}, fmt.Errorf("expected 5 fields, got %d", len(parts))
-	}
-
-	minute, err := parseField(parts[0], 0, 59)
-	if err != nil {
-		return CronParts{}, fmt.Errorf("minute: %w", err)
-	}
-	hour, err := parseField(parts[1], 0, 23)
-	if err != nil {
-		return CronParts{}, fmt.Errorf("hour: %w", err)
-	}
-	dom, err := parseField(parts[2], 1, 31)
-	if err != nil {
-		return CronParts{}, fmt.Errorf("day of month: %w", err)
-	}
-	month, err := parseField(parts[3], 1, 12)
-	if err != nil {
-		return CronParts{}, fmt.Errorf("month: %w", err)
-	}
-	dow, err := parseField(parts[4], 0, 7)
-	if err != nil {
-		return CronParts{}, fmt.Errorf("day of week: %w", err)
-	}
-
-	return CronParts{Minute: minute, Hour: hour, DOM: dom, Month: month, DOW: dow}, nil
-}
-
-func parseField(field string, min, max int) ([]int, error) {
-	if field == "*" {
-		result := make([]int, max-min+1)
-		for i := min; i <= max; i++ {
-			result[i-min] = i
-		}
-		return result, nil
-	}
-
-	if strings.HasPrefix(field, "*/") {
-		step, err := strconv.Atoi(field[2:])
-		if err != nil || step <= 0 {
-			return nil, fmt.Errorf("invalid step: %q", field)
-		}
-		var result []int
-		for i := min; i <= max; i += step {
-			result = append(result, i)
-		}
-		return result, nil
-	}
-
-	val, err := strconv.Atoi(field)
-	if err != nil {
-		return nil, fmt.Errorf("invalid value: %q", field)
-	}
-	if val < min || val > max {
-		return nil, fmt.Errorf("value %d out of range [%d,%d]", val, min, max)
-	}
-	return []int{val}, nil
-}
-
-func matchesCron(c CronParts, t time.Time) bool {
-	if !intInSlice(int(t.Month()), c.Month) {
-		return false
-	}
-	if !intInSlice(t.Day(), c.DOM) {
-		return false
-	}
-	if !intInSlice(t.Hour(), c.Hour) {
-		return false
-	}
-	if !intInSlice(t.Minute(), c.Minute) {
-		return false
-	}
-	dow := int(t.Weekday())
-	if !intInSlice(dow, c.DOW) && !intInSlice(7, c.DOW) {
-		return false
-	}
-	return true
-}
-
-func intInSlice(n int, slice []int) bool {
-	for _, v := range slice {
-		if v == n {
-			return true
-		}
-	}
-	return false
 }
