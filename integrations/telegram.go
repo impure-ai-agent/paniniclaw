@@ -112,7 +112,9 @@ func (t *Telegram) Listen() error {
 						var sb strings.Builder
 						sb.WriteString("Available tasks:\n")
 						for _, n := range names {
-							sb.WriteString("  - " + n + "\n")
+							sb.WriteString("  - ")
+							sb.WriteString(n)
+							sb.WriteString("\n")
 						}
 						sb.WriteString("\nUse /run_task <name> to start one.")
 						msg := tgbotapi.NewMessage(update.Message.Chat.ID, sb.String())
