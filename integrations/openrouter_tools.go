@@ -130,10 +130,19 @@ var EndTaskTool = Tool{
 	Type: "function",
 	Function: FunctionDefinition{
 		Name:        "end_task",
-		Description: "Mark the currently active scheduled task as complete. Call this when you have finished executing the task's objective.",
+		Description: "Mark the currently active scheduled task as complete. If you encountered an issue and could not complete the objective, provide a 'reason' parameter explaining why.",
 		Parameters: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
+			"type": "object",
+			"properties": map[string]interface{}{
+				"reason": map[string]interface{}{
+					"type":        "string",
+					"description": "If set, marks the task as failed with this explanation. Omit or leave empty for a successful completion.",
+				},
+			},
 		},
 	},
+}
+
+type EndTaskArgs struct {
+	Reason string `json:"reason"`
 }
