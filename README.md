@@ -70,3 +70,13 @@ You can also trigger a task immediately by sending the `/run_task` command to th
 - `/run_task blog_post_writer` - Runs the specified task immediately (if no other task is currently running)
 
 You can cancel a running task with `/end_task`.
+
+## Backups
+
+You can backup files using this command:
+
+```
+rsync -avz -e "ssh -i <ssh_key_path>" root@<server_ip>:/home/paniniclaw/paniniclaw/{tasks,notes,directives} ~/paniniclaw_backup/
+```
+
+Change root to the desired user and remove the `-e ...` part if not using a key file.
