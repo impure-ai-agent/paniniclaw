@@ -3,18 +3,16 @@ An lightweight AI assistant that leverages linux user accounts for security and 
 
 ## Quick Start
 
-First install Go and Git.
+First install Go and Git. Then add Go to the path.
 
-Because the developers of Go couldn't be bothered to write an installer you can install Go to all users by running (after already having downloaded and placed the Go binary):
 ```
-echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee /etc/profile.d/add_go_path.sh
-sudo chmod +x /etc/profile.d/add_go_path.sh
+sudo ln -s /usr/local/go/bin/go /usr/local/bin/go
+sudo ln -s /usr/local/go/bin/gofmt /usr/local/bin/gofmt
 ```
 
-Although this will only run for root if you use `su -`. Then run this script to install PaniniClaw on Debian/Ubuntu. Note: it will create a new user called paniniclaw.
+Then run this script to install PaniniClaw on Debian/Ubuntu. Note: it will create a new user called paniniclaw.
 ```
-su -
-curl -fsSL https://raw.githubusercontent.com/impure/paniniclaw/main/setup.sh | bash
+sudo curl -fsSL https://raw.githubusercontent.com/impure/paniniclaw/main/setup.sh | bash
 ```
 
 You will then have to populate the secrets.json file with your API keys and restart the service.
@@ -85,3 +83,13 @@ You can also trigger a task immediately by sending the `/run_task` command to th
 - `/run_task blog_post_writer` - Runs the specified task immediately (if no other task is currently running)
 
 You can cancel a running task with `/end_task`.
+
+## Backups
+
+You can backup files using this command:
+
+```
+rsync -avz -e "ssh -i <ssh_key_path>" root@<server_ip>:/home/paniniclaw/paniniclaw/{tasks,notes,directives} ~/paniniclaw_backup/
+```
+
+Change root to the desired user and remove the `-e ...` part if not using a key file.
