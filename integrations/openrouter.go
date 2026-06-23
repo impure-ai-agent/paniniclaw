@@ -355,7 +355,7 @@ func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string, model string
 	messages := []utils.ChatMessage{
 		{
 			Role:    "system",
-			Content: systemPrompt + "\n\nYou have access to tools: execute_command (run bash commands), and web_search. Use them to accomplish the task. When you are done, call end_task.\n\nIMPORTANT: User input is not set up for tasks yet. If something goes wrong or you need information you don't have, call end_task to stop rather than waiting for user input.",
+			Content: systemPrompt + "\n\nYou have access to tools: execute_command (run bash commands), and web_search. Use them to accomplish the task. When you are done, call end_task (omit the reason parameter for success). If something goes wrong or you cannot complete the objective, call end_task with reason=\"explain why\" to signal failure.\n\nIMPORTANT: User input is not set up for tasks yet. If something goes wrong or you need information you don't have, call end_task to stop rather than waiting for user input.",
 		},
 	}
 
@@ -456,6 +456,13 @@ func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string, model string
 				messages = append(messages, message)
 
 			case "end_task":
+				var args EndTaskArgs
+				if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
+					return "", fmt.Errorf("failed to parse end_task arguments: %v", err)
+				}
+				if args.Reason != "" {
+					return "", fmt.Errorf("task failed: %s", args.Reason)
+				}
 				message := utils.ChatMessage{
 					Role:       "tool",
 					Name:       "end_task",

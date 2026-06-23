@@ -146,10 +146,21 @@ func (s *Scheduler) runTask(name, prompt, model string) {
 		}
 	})
 	if err != nil {
-		errMsg := fmt.Sprintf("⚠️ Task %q failed: %v", name, err)
-		log.Printf("[scheduler] %s", errMsg)
-		if s.send != nil {
-			s.send(s.chatId, errMsg)
+		// Check if this is an explicit task failure (via end_task with reason)
+		errStr := err.Error()
+		if strings.HasPrefix(errStr, "task failed: ") {
+			reason := strings.TrimPrefix(errStr, "task failed: ")
+			errMsg := fmt.Sprintf("❌ Task %q failed: %s", name, reason)
+			log.Printf("[scheduler] %s", errMsg)
+			if s.send != nil {
+				s.send(s.chatId, errMsg)
+			}
+		} else {
+			errMsg := fmt.Sprintf("⚠️ Task %q failed: %v", name, err)
+			log.Printf("[scheduler] %s", errMsg)
+			if s.send != nil {
+				s.send(s.chatId, errMsg)
+			}
 		}
 	} else {
 		log.Printf("[scheduler] Task %q completed", name)
