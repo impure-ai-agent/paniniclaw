@@ -49,7 +49,7 @@ machine api.github.com
 
 # Scheduled Tasks
 
-Drop `.json` files here with a `"schedule"` key using cron syntax.
+Drop `.json` files here with a `"schedule"` key using standard cron syntax.
 
 Example:
 
@@ -61,6 +61,19 @@ Example:
   "task": "Your task is to visit https://en.wikipedia.org/wiki/Special:Random using clean_curl.py, read the content, and tell the user what the article is about and share something interesting from it. When you are done, call the end_task tool."
 }
 ```
+
+You can also specify a model override if you want a task to use a different model from the default:
+
+```json
+{
+  "schedule": "30 9 * * *",
+  "name": "Blog Post Writer",
+  "model": "qwen/qwen3.7-plus",
+  "task": "Write a blog post..."
+}
+```
+
+This is useful if your default model is a cheaper/faster one (e.g. for simple queries) and you want certain tasks — like writing — to use a more capable model. It's also handy if your primary model does aggressive prompt caching; you can route tasks that shouldn't pollute the cache to a different model.
 
 ## Running Tasks On Demand
 

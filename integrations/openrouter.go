@@ -359,7 +359,7 @@ func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string, model string
 		},
 	}
 
-	const maxIterations = 50
+	const maxIterations = 100
 	for i := 0; i < maxIterations; i++ {
 		allowFallbacks := true
 
