@@ -1,5 +1,7 @@
 # PaniniClaw
-An lightweight AI assistant that leverages linux user accounts for security and openrouter for routing.
+An lightweight AI assistant designed for Linux that leverages linux user accounts for security and openrouter for routing.
+
+> **Note:** PaniniClaw is designed for Linux only. It relies on Linux-specific features like user accounts, systemd services, and Unix permissions.
 
 ## Quick Start
 

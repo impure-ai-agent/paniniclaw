@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Check if running on Linux
+if [ "$(uname)" != "Linux" ]; then
+    echo "Warning: PaniniClaw is designed for Linux only. You are running on $(uname)." >&2
+    echo "The setup may fail or behave unexpectedly." >&2
+    echo "Press Ctrl+C to cancel, or Enter to continue anyway..."
+    read -r _confirm </dev/tty
+fi
+
 # Check if the script is run as root
 if [ "$(id -u)" -ne 0 ]; then
     echo "Error: This script must be run with sudo or as root to change file ownership." >&2
