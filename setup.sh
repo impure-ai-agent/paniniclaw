@@ -5,6 +5,8 @@ set -euo pipefail
 if [ "$(uname)" != "Linux" ]; then
     echo "Warning: PaniniClaw is designed for Linux only. You are running on $(uname)." >&2
     echo "The setup may fail or behave unexpectedly." >&2
+    echo "Press Ctrl+C to cancel, or Enter to continue anyway..."
+    read -r _confirm </dev/tty
 fi
 
 # Check if the script is run as root
