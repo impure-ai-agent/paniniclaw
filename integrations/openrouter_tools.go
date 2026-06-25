@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"context"
+	"time"
 	"path/filepath"
 )
 
@@ -25,7 +27,7 @@ var TerminalTool = Tool{
 	Type: "function",
 	Function: FunctionDefinition{
 		Name:        "execute_command",
-		Description: "Execute a terminal command. The command will run in bash as a unprivileged user.",
+		Description: "Execute a terminal command. The command will run in bash as a unprivileged user. Commands are automatically killed after 30 seconds if they hang.",
 		Parameters: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
@@ -44,8 +46,12 @@ type ExecuteCommandArgs struct {
 }
 
 // ExecuteCommand runs a bash command and returns the combined output (stdout and stderr).
+// Commands are killed after 30 seconds to prevent hanging.
 func ExecuteCommand(command string) (string, error) {
-	cmd := exec.Command("bash", "-c", command)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "bash", "-c", command)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -63,6 +69,9 @@ func ExecuteCommand(command string) (string, error) {
 	}
 
 	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return output, fmt.Errorf("command timed out after 30 seconds: %v", err)
+		}
 		return output, fmt.Errorf("command execution failed: %v", err)
 	}
 
