@@ -11,14 +11,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/robfig/cron/v3"
 )
 
 type Job struct {
-	Model    string `json:"model,omitempty"`
-	Schedule string `json:"schedule"`
-	Name     string `json:"name"`
-	Task     string `json:"task"`
+	Model    string `json:"model,omitempty" toml:"model,omitempty"`
+	Schedule string `json:"schedule" toml:"schedule"`
+	Name     string `json:"name" toml:"name"`
+	Task     string `json:"task" toml:"task"`
 }
 
 type LLMClient interface {
@@ -86,7 +87,17 @@ func (s *Scheduler) setTask(name string) {
 	s.currentTask = name
 }
 
-// ListTaskNames returns the names (without .json) of all available tasks.
+// isTaskFile checks if a filename is a supported task file (.json or .toml)
+func isTaskFile(name string) bool {
+	return strings.HasSuffix(name, ".json") || strings.HasSuffix(name, ".toml")
+}
+
+// trimTaskExt removes the .json or .toml extension from a filename
+func trimTaskExt(name string) string {
+	return strings.TrimSuffix(strings.TrimSuffix(name, ".json"), ".toml")
+}
+
+// ListTaskNames returns the names (without extension) of all available tasks.
 func (s *Scheduler) ListTaskNames() ([]string, error) {
 	entries, err := os.ReadDir(s.dir)
 	if err != nil {
@@ -94,22 +105,22 @@ func (s *Scheduler) ListTaskNames() ([]string, error) {
 	}
 	var names []string
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
-			names = append(names, strings.TrimSuffix(entry.Name(), ".json"))
+		if !entry.IsDir() && isTaskFile(entry.Name()) {
+			names = append(names, trimTaskExt(entry.Name()))
 		}
 	}
 	return names, nil
 }
 
-// RunTaskByName loads a task by filename (without .json) and runs it immediately.
+// RunTaskByName loads a task by name (without extension) and runs it immediately.
 // Returns an error if the task is not found or if another task is currently running.
 func (s *Scheduler) RunTaskByName(name string) error {
 	if s.GetCurrentTask() != "" {
 		return fmt.Errorf("task %q is already running, wait for it to finish or use /end_task", s.GetCurrentTask())
 	}
 
-	path := filepath.Join(s.dir, name+".json")
-	job, err := loadJob(path)
+	// Try .toml first, then .json
+	job, err := loadTask(s.dir, name)
 	if err != nil {
 		return fmt.Errorf("task %q not found: %v", name, err)
 	}
@@ -169,7 +180,7 @@ func (s *Scheduler) checkAndRun() {
 	now := time.Now()
 
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+		if entry.IsDir() || !isTaskFile(entry.Name()) {
 			continue
 		}
 
@@ -193,7 +204,7 @@ func (s *Scheduler) checkAndRun() {
 			continue
 		}
 
-		jobName := strings.TrimSuffix(entry.Name(), ".json")
+		jobName := trimTaskExt(entry.Name())
 
 		s.mu.Lock()
 		lastRun, exists := s.lastRuns[jobName]
@@ -226,6 +237,19 @@ func (s *Scheduler) checkAndRun() {
 	}
 }
 
+// loadTask tries to load a task by name, checking .toml first then .json
+func loadTask(dir, name string) (Job, error) {
+	// Try .toml first
+	tomlPath := filepath.Join(dir, name+".toml")
+	if _, err := os.Stat(tomlPath); err == nil {
+		return loadJob(tomlPath)
+	}
+
+	// Fall back to .json
+	jsonPath := filepath.Join(dir, name+".json")
+	return loadJob(jsonPath)
+}
+
 func loadJob(path string) (Job, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -233,8 +257,15 @@ func loadJob(path string) (Job, error) {
 	}
 
 	var job Job
-	if err := json.Unmarshal(data, &job); err != nil {
-		return Job{}, fmt.Errorf("invalid JSON: %w", err)
+
+	if strings.HasSuffix(path, ".toml") {
+		if err := toml.Unmarshal(data, &job); err != nil {
+			return Job{}, fmt.Errorf("invalid TOML: %w", err)
+		}
+	} else {
+		if err := json.Unmarshal(data, &job); err != nil {
+			return Job{}, fmt.Errorf("invalid JSON: %w", err)
+		}
 	}
 
 	if job.Schedule == "" {
