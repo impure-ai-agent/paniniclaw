@@ -83,7 +83,7 @@ var AppendNotesTool = Tool{
 	Type: "function",
 	Function: FunctionDefinition{
 		Name:        "append_notes",
-		Description: "Append a new line of text to the user's notes file (notes/user<id>.md) or to the general notes file (notes/general.md). Use this to save information the user might want to refer to later.",
+		Description: "Append a new line of text to the user's notes file (notes/user<id>.md) or to the general notes file (notes/general.md). Use this whenever the user has to explain things so you don't have to ask them again later.",
 		Parameters: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
