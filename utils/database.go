@@ -179,6 +179,7 @@ func (d *Database) GetRecentMessages(
 		return nil, err
 	}
 
+	// Find session start (4+ hour gap)
 	sessionStart := 0
 
 	for i := 1; i < len(messages); i++ {
@@ -192,5 +193,69 @@ func (d *Database) GetRecentMessages(
 		}
 	}
 
+	// If we have more than 20 messages, use summaries for the condensed portion
+	// and keep only the last 20 raw messages
+	if len(messages) > 20 && sessionStart < len(messages)-20 {
+		// Look up summaries for messages before the last 20
+		summaries, err := d.getSummariesBefore(
+			provider, conversationID,
+			messages[len(messages)-20].Id,
+		)
+		if err == nil && len(summaries) > 0 {
+			// Build a condensed summary message from all summaries
+			var summaryText string
+			for _, s := range summaries {
+				if summaryText != "" {
+					summaryText += "\n---\n"
+				}
+				summaryText += s
+			}
+
+			// Create a synthetic system message with the summary
+			summaryMsg := Message{
+				Id:             0, // synthetic
+				Provider:       provider,
+				ConversationId: conversationID,
+				Data: ChatMessage{
+					Role:    "system",
+					Content: "[Previous conversation summary]: " + summaryText,
+				},
+				CreatedAt: messages[len(messages)-20].CreatedAt,
+			}
+
+			// Return: summary + last 20 messages
+			result := []Message{summaryMsg}
+			result = append(result, messages[len(messages)-20:]...)
+			return result, nil
+		}
+	}
+
 	return messages[sessionStart:], nil
+}
+
+// getSummariesBefore retrieves all summaries that end before the given message ID.
+func (d *Database) getSummariesBefore(provider, conversationID string, beforeMessageID int64) ([]string, error) {
+	rows, err := d.DB.Query(`
+		SELECT summary
+		FROM conversation_summaries
+		WHERE
+			provider = ?
+			AND conversation_id = ?
+			AND last_message_id < ?
+		ORDER BY last_message_id ASC
+	`, provider, conversationID, beforeMessageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var summaries []string
+	for rows.Next() {
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			return nil, err
+		}
+		summaries = append(summaries, s)
+	}
+	return summaries, rows.Err()
 }

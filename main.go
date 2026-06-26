@@ -62,6 +62,9 @@ func main() {
 			telegram.SendMessage,
 			ownerChatId,
 		)
+		scheduler.CondenseFn = func() error {
+			return utils.CondenseMemory(db, openRouter)
+		}
 		scheduler.Start()
 		telegram.SetScheduler(scheduler)
 	} else {

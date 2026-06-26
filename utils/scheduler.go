@@ -37,6 +37,7 @@ type Scheduler struct {
 	mu          sync.Mutex
 	currentTask string // name of the currently active task, empty if none
 	taskMu      sync.RWMutex
+	CondenseFn  func() error // called hourly to condense old conversation memory
 }
 
 func NewScheduler(dir string, client LLMClient, send MessageSender, chatId string) *Scheduler {
@@ -56,13 +57,31 @@ func (s *Scheduler) Start() {
 }
 
 func (s *Scheduler) loop() {
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
+	taskTicker := time.NewTicker(30 * time.Second)
+	defer taskTicker.Stop()
+
+	condenseTicker := time.NewTicker(1 * time.Hour)
+	defer condenseTicker.Stop()
 
 	s.checkAndRun()
+	s.runCondense()
 
-	for range ticker.C {
-		s.checkAndRun()
+	for {
+		select {
+		case <-taskTicker.C:
+			s.checkAndRun()
+		case <-condenseTicker.C:
+			s.runCondense()
+		}
+	}
+}
+
+func (s *Scheduler) runCondense() {
+	if s.CondenseFn != nil {
+		log.Println("[scheduler] Running memory condensation...")
+		if err := s.CondenseFn(); err != nil {
+			log.Printf("[scheduler] Memory condensation failed: %v", err)
+		}
 	}
 }
 
