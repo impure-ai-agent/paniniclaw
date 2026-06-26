@@ -152,8 +152,8 @@ func (d *Database) GetRecentMessages(
 	return messages[sessionStart:], nil
 }
 
-// GetRecentMessagesSince returns the count of messages newer than a given time.
-func (d *Database) GetRecentMessagesSince(
+// CountMessagesSince returns the count of messages newer than a given time.
+func (d *Database) CountMessagesSince(
 	provider string,
 	conversationID string,
 	since time.Time,
