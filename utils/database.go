@@ -40,17 +40,34 @@ func (d *Database) migrate() error {
 		PRAGMA foreign_keys = ON;
 
 		CREATE TABLE IF NOT EXISTS messages (
-				id INTEGER PRIMARY KEY AUTOINCREMENT,
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-				provider TEXT NOT NULL,
-				conversation_id TEXT NOT NULL,
+			provider TEXT NOT NULL,
+			conversation_id TEXT NOT NULL,
 
-				data TEXT NOT NULL,
+			data TEXT NOT NULL,
 
-				created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+
+		CREATE TABLE IF NOT EXISTS conversation_summaries (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+			provider TEXT NOT NULL,
+			conversation_id TEXT NOT NULL,
+
+			summary TEXT NOT NULL,
+
+			first_message_id INTEGER NOT NULL,
+			last_message_id INTEGER NOT NULL,
+			first_message_time DATETIME NOT NULL,
+			last_message_time DATETIME NOT NULL,
+
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		);
 
 		CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(provider, conversation_id, created_at);
+		CREATE INDEX IF NOT EXISTS idx_summaries_conversation ON conversation_summaries(provider, conversation_id, last_message_time);
 	`)
 
 	return err
