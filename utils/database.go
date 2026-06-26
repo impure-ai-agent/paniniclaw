@@ -152,37 +152,28 @@ func (d *Database) GetRecentMessages(
 	return messages[sessionStart:], nil
 }
 
-// GetRecentMessagesSince returns messages newer than a given time, without session splitting.
+// GetRecentMessagesSince returns the count of messages newer than a given time.
 func (d *Database) GetRecentMessagesSince(
 	provider string,
 	conversationID string,
 	since time.Time,
-) ([]Message, error) {
+) (int, error) {
 
-	rows, err := d.DB.Query(`
-		SELECT
-			id,
-			provider,
-			conversation_id,
-			data,
-			created_at
+	var count int
+	err := d.DB.QueryRow(`
+		SELECT COUNT(*)
 		FROM messages
 		WHERE
 			provider = ?
 			AND conversation_id = ?
 			AND created_at >= ?
-		ORDER BY id ASC
 	`,
 		provider,
 		conversationID,
 		since,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+	).Scan(&count)
 
-	return scanMessages(rows)
+	return count, err
 }
 
 // GetMessagesSince returns all messages after a given time, without session splitting.

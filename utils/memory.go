@@ -48,13 +48,13 @@ func (m *MemoryManager) Run() {
 			conversationID := fmt.Sprintf("%v", chatID)
 
 			// Skip if there are messages in the last 4 hours (actively chatting)
-			recentMsgs, err := m.db.GetRecentMessagesSince(provider, conversationID, fourHoursAgo)
+			recentCount, err := m.db.GetRecentMessagesSince(provider, conversationID, fourHoursAgo)
 			if err != nil {
 				log.Printf("[memory] Error checking recent messages for %s/%s: %v", provider, conversationID, err)
 				continue
 			}
-			if len(recentMsgs) > 0 {
-				log.Printf("[memory] Skipping %s/%s — active in last 4 hours (%d messages)", provider, conversationID, len(recentMsgs))
+			if recentCount > 0 {
+				log.Printf("[memory] Skipping %s/%s — active in last 4 hours (%d messages)", provider, conversationID, recentCount)
 				continue
 			}
 
