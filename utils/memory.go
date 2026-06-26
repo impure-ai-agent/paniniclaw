@@ -70,11 +70,8 @@ func (m *MemoryManager) Run() {
 
 			// Find the first session boundary in these messages
 			sessionMsgs := m.findFirstSession(messages)
-			if len(sessionMsgs) < 2 {
-				// Store a marker so we don't get stuck on these messages forever
-				log.Printf("[memory] Only %d message(s) for %s/%s, marking as processed", len(sessionMsgs), provider, conversationID)
-				lastMsg := sessionMsgs[len(sessionMsgs)-1]
-				m.storeSummary(provider, conversationID, lastMsg.CreatedAt, "")
+			if len(sessionMsgs) == 0 {
+				log.Printf("[memory] No messages to summarize for %s/%s", provider, conversationID)
 				continue
 			}
 
