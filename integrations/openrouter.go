@@ -301,6 +301,7 @@ func (o *OpenRouter) rawChat(ctx context.Context, prompt chatRequest) (utils.Cha
 	}
 
 	// The body can be very large in long chats
+	/* Disable this because for tool calls the output can be very long
 	if len(prompt.Messages) > 0 {
 		lastMessage, err := json.MarshalIndent(prompt.Messages[len(prompt.Messages)-1], "", "\t")
 		if err != nil {
@@ -308,6 +309,7 @@ func (o *OpenRouter) rawChat(ctx context.Context, prompt chatRequest) (utils.Cha
 		}
 		println("Making request with last message:\n", string(lastMessage))
 	}
+	*/
 
 	req, err := http.NewRequestWithContext(
 		ctx,
