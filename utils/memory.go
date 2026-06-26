@@ -71,7 +71,10 @@ func (m *MemoryManager) Run() {
 			// Find the first session boundary in these messages
 			sessionMsgs := m.findFirstSession(messages)
 			if len(sessionMsgs) < 2 {
-				log.Printf("[memory] No complete session found for %s/%s (need at least 2 messages)", provider, conversationID)
+				// Store a marker so we don't get stuck on these messages forever
+				log.Printf("[memory] Only %d message(s) for %s/%s, marking as processed", len(sessionMsgs), provider, conversationID)
+				lastMsg := sessionMsgs[len(sessionMsgs)-1]
+				m.storeSummary(provider, conversationID, lastMsg.CreatedAt, "")
 				continue
 			}
 
@@ -83,9 +86,11 @@ func (m *MemoryManager) Run() {
 				continue
 			}
 
-			// Store the summary (skip if nothing important)
+			// Store marker even if nothing important to avoid reprocessing
 			if summary == "" {
-				log.Printf("[memory] Nothing important in session for %s/%s, skipping", provider, conversationID)
+				log.Printf("[memory] Nothing important in session for %s/%s, marking as processed", provider, conversationID)
+				sessionEnd := sessionMsgs[len(sessionMsgs)-1].CreatedAt
+				m.storeSummary(provider, conversationID, sessionEnd, "")
 			} else {
 				sessionEnd := sessionMsgs[len(sessionMsgs)-1].CreatedAt
 				if err := m.storeSummary(provider, conversationID, sessionEnd, summary); err != nil {
@@ -133,10 +138,11 @@ func (m *MemoryManager) filename(provider, conversationID string) string {
 }
 
 // findFirstSession finds the earliest complete session (bounded by a 4h gap) in messages.
-// It returns the messages from the start up to the first gap (or end).
+// Returns at least 2 messages if available (or all if fewer). Falls back to all messages
+// if no gap is found so we don't get stuck forever.
 func (m *MemoryManager) findFirstSession(messages []Message) []Message {
-	if len(messages) == 0 {
-		return nil
+	if len(messages) < 2 {
+		return messages
 	}
 
 	end := len(messages)
@@ -150,6 +156,7 @@ func (m *MemoryManager) findFirstSession(messages []Message) []Message {
 		}
 	}
 
+	// If no gap found, summarize everything we have
 	return messages[:end]
 }
 
