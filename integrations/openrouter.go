@@ -225,7 +225,7 @@ func (o *OpenRouter) chatWithTools(ctx context.Context, messages []utils.ChatMes
 				if err != nil {
 					output = fmt.Sprintf("Error: %v\nOutput: %s", err, output)
 				}
-				println("Output:", output)
+				//println("Output:", output)
 
 				message := utils.ChatMessage{
 					Role:       "tool",
@@ -426,7 +426,7 @@ func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string, model string
 				if err != nil {
 					output = fmt.Sprintf("Error: %v\nOutput: %s", err, output)
 				}
-				println("Output:", output)
+				//println("Output:", output)
 
 				message := utils.ChatMessage{
 					Role:       "tool",
