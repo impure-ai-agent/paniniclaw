@@ -3,6 +3,7 @@ package utils
 import (
 	"database/sql"
 	"encoding/json"
+	"strings"
 	"os"
 	"path/filepath"
 	"time"
@@ -192,5 +193,55 @@ func (d *Database) GetRecentMessages(
 		}
 	}
 
+	// Inject conversation summary if there are past sessions with summaries
+	summary, err := d.getLatestSummary(provider, conversationID, messages[sessionStart].Id)
+	if err == nil && summary != "" {
+		summaryMsg := Message{
+			Id:             0,
+			Provider:       provider,
+			ConversationId: conversationID,
+			Data: ChatMessage{
+				Role:    "system",
+				Content: "[Previous conversation summary]: " + summary,
+			},
+			CreatedAt: messages[sessionStart].CreatedAt,
+		}
+		result := []Message{summaryMsg}
+		result = append(result, messages[sessionStart:]...)
+		return result, nil
+	}
+
 	return messages[sessionStart:], nil
+}
+
+// getLatestSummary returns the combined summary text for all summaries
+// that end before the given firstMessageID in the current session.
+func (d *Database) getLatestSummary(provider, conversationID string, firstMessageID int64) (string, error) {
+	rows, err := d.DB.Query(`
+		SELECT summary
+		FROM conversation_summaries
+		WHERE
+			provider = ?
+			AND conversation_id = ?
+			AND last_message_id < ?
+		ORDER BY last_message_id ASC
+	`, provider, conversationID, firstMessageID)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+
+	var parts []string
+	for rows.Next() {
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			return "", err
+		}
+		parts = append(parts, s)
+	}
+	if err := rows.Err(); err != nil {
+		return "", err
+	}
+
+	return strings.Join(parts, "\n---\n"), nil
 }

@@ -62,6 +62,17 @@ func main() {
 			telegram.SendMessage,
 			ownerChatId,
 		)
+		scheduler.CondenseFn = func() error {
+			// Condense one conversation per run to avoid overloading
+			done, err := utils.CondenseOneConversation(db, openRouter)
+			if err != nil {
+				return err
+			}
+			if done {
+				log.Println("[condense] Condensed one conversation")
+			}
+			return nil
+		}
 		scheduler.Start()
 		telegram.SetScheduler(scheduler)
 	} else {
