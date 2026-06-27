@@ -131,34 +131,8 @@ func (d *Database) GetRecentMessages(
 	}
 	defer rows.Close()
 
-	var messages []Message
-
-	for rows.Next() {
-		var msg Message
-		var rawData []byte // Temp container for the database value
-
-		err := rows.Scan(
-			&msg.Id,
-			&msg.Provider,
-			&msg.ConversationId,
-			&rawData, // Scan bytes instead of the map
-			&msg.CreatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		// Unmarshal JSON bytes into the map if rawData is not empty
-		if len(rawData) > 0 {
-			if err := json.Unmarshal(rawData, &msg.Data); err != nil {
-				return nil, err
-			}
-		}
-
-		messages = append(messages, msg)
-	}
-
-	if err := rows.Err(); err != nil {
+	messages, err := scanMessages(rows)
+	if err != nil {
 		return nil, err
 	}
 
@@ -176,4 +150,119 @@ func (d *Database) GetRecentMessages(
 	}
 
 	return messages[sessionStart:], nil
+}
+
+// CountMessagesSince returns the count of messages newer than a given time.
+func (d *Database) CountMessagesSince(
+	provider string,
+	conversationID string,
+	since time.Time,
+) (int, error) {
+
+	var count int
+	err := d.DB.QueryRow(`
+		SELECT COUNT(*)
+		FROM messages
+		WHERE
+			provider = ?
+			AND conversation_id = ?
+			AND created_at >= ?
+	`,
+		provider,
+		conversationID,
+		since,
+	).Scan(&count)
+
+	return count, err
+}
+
+// GetMessagesSince returns all messages after a given time, without session splitting.
+// If since is zero time, returns all messages.
+func (d *Database) GetMessagesSince(
+	provider string,
+	conversationID string,
+	since time.Time,
+) ([]Message, error) {
+
+	var rows *sql.Rows
+	var err error
+
+	if since.IsZero() {
+		rows, err = d.DB.Query(`
+			SELECT
+				id,
+				provider,
+				conversation_id,
+				data,
+				created_at
+			FROM messages
+			WHERE
+				provider = ?
+				AND conversation_id = ?
+			ORDER BY id ASC
+		`,
+			provider,
+			conversationID,
+		)
+	} else {
+		rows, err = d.DB.Query(`
+			SELECT
+				id,
+				provider,
+				conversation_id,
+				data,
+				created_at
+			FROM messages
+			WHERE
+				provider = ?
+				AND conversation_id = ?
+				AND created_at > ?
+			ORDER BY id ASC
+		`,
+			provider,
+			conversationID,
+			since,
+		)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanMessages(rows)
+}
+
+// scanMessages is a helper to scan rows into Message slices.
+func scanMessages(rows *sql.Rows) ([]Message, error) {
+	var messages []Message
+
+	for rows.Next() {
+		var msg Message
+		var rawData []byte
+
+		err := rows.Scan(
+			&msg.Id,
+			&msg.Provider,
+			&msg.ConversationId,
+			&rawData,
+			&msg.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(rawData) > 0 {
+			if err := json.Unmarshal(rawData, &msg.Data); err != nil {
+				return nil, err
+			}
+		}
+
+		messages = append(messages, msg)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return messages, nil
 }

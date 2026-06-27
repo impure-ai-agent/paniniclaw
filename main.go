@@ -5,6 +5,7 @@ import (
 	"log"
 	"paniniclaw/integrations"
 	"paniniclaw/utils"
+	"time"
 )
 
 func main() {
@@ -67,6 +68,18 @@ func main() {
 	} else {
 		log.Println("[scheduler] No owner chat ID found, scheduler disabled")
 	}
+
+	// Start memory manager — runs every hour
+	memory := utils.NewMemoryManager(db, userStore, openRouter)
+	go func() {
+		// Run once at startup, then every hour
+		memory.Run()
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			memory.Run()
+		}
+	}()
 
 	log.Fatal(telegram.Listen())
 }
