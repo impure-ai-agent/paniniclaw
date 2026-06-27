@@ -55,7 +55,7 @@ type chatResponse struct {
 	} `json:"choices"`
 }
 
-func makeSystemMessage(user utils.User) (utils.ChatMessage, error) {
+func makeSystemMessage(user utils.User, chatId string) (utils.ChatMessage, error) {
 	soulBytes, err := ensureFileExists("directives/core.md", `You are PaniniClaw, a helpful AI assistant that also makes paninis.
 - You are running on the paniniclaw service
 - When responding to user requests, briefly explain what command/action you're about to perform. For example: "I'll search the web for X", "I'll check git status", etc. This helps avoid confusion about what's happening
@@ -92,9 +92,21 @@ func makeSystemMessage(user utils.User) (utils.ChatMessage, error) {
 		return utils.ChatMessage{}, err
 	}
 
+	// Load memory file for this conversation if it exists
+	provider := "telegram"
+	if len(user.Connections) > 0 {
+		provider = user.Connections[0].Provider
+	}
+	memoryPath := fmt.Sprintf("memory/%s_%s.md", provider, chatId)
+	memoryBytes, memErr := os.ReadFile(memoryPath)
+	var memoryContent string
+	if memErr == nil {
+		memoryContent = string(memoryBytes)
+	}
+	
 	return utils.ChatMessage{
 		Role:    "system",
-		Content: fmt.Sprintf("directives/core.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s\n\nnotes/general.md: %s\n\nnotes/user%s.md: %s\n", soulBytes, telegramBytes, userJson, generalBytes, strconv.Itoa(user.Id), userNotesBytes),
+		Content: fmt.Sprintf("directives/core.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s\n\nnotes/general.md: %s\n\nnotes/user%s.md: %s\n\nmemory/%s_%s.md: %s\n", soulBytes, telegramBytes, userJson, generalBytes, strconv.Itoa(user.Id), userNotesBytes, provider, chatId, memoryContent),
 	}, nil
 }
 
@@ -122,7 +134,7 @@ func ensureFileExists(path string, defaultContent string) ([]byte, error) {
 }
 
 func (o *OpenRouter) ChatFromMessages(ctx context.Context, messages []utils.Message, user utils.User, db *utils.Database, chatId string) (string, error) {
-	systemMessage, err := makeSystemMessage(user)
+	systemMessage, err := makeSystemMessage(user, chatId)
 	if err != nil {
 		return "", err
 	}
