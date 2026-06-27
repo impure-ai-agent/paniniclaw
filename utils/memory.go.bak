@@ -2,7 +2,6 @@ package utils
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -180,14 +179,18 @@ func (m *MemoryManager) summarizeConversation(messages []Message) (string, error
 
 	prompt := fmt.Sprintf(`Review the following conversation and extract any important information the user shared. This could include: preferences, plans, technical details, decisions, personal information, questions they want answered later, or anything worth remembering.
 
-If nothing important was discussed (just casual chat, greetings, etc.), respond with exactly: {"points": []}
-
-Otherwise, respond with a JSON object containing a single key "points" with an array of strings, one per key point. Write in third person about "the user". Keep each point brief. Do not include any introductory text, explanations, or commentary — just the JSON.
+STRICT FORMAT RULES — YOU MUST FOLLOW THESE EXACTLY:
+1. If nothing important was discussed (just casual chat, greetings, etc.), respond with exactly: NOTHING_IMPORTANT
+2. Otherwise, output ONLY bullet points starting with "- ". One bullet per key point.
+3. Write in third person about "the user". Keep each point brief.
+4. DO NOT include any introductory text, explanations, or commentary — just the bullet points.
+5. DO NOT say things like "Let me search..." or "Let me look..." — that is the assistant's internal monologue, not the user's information.
+6. DO NOT write paragraphs or continuous prose.
 
 Conversation:
 %s
 
-JSON:`, transcript.String())
+Key points only (bullet format):`, transcript.String())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
@@ -199,19 +202,30 @@ JSON:`, transcript.String())
 
 	result = strings.TrimSpace(result)
 
-	// Try to parse as JSON
-	var parsed struct {
-		Points []string `json:"points"`
+	if result == "" || result == "NOTHING_IMPORTANT" {
+		return "", nil
 	}
-	if err := json.Unmarshal([]byte(result), &parsed); err == nil {
-		if len(parsed.Points) == 0 {
-			return "", nil
+
+	// Post-process: strip any lines before the first bullet point
+	lines := strings.Split(result, "\n")
+	var cleanLines []string
+	inBullets := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "- ") {
+			inBullets = true
 		}
-		var sb strings.Builder
-		for _, p := range parsed.Points {
-			sb.WriteString("- " + p + "\n")
+		if inBullets {
+			cleanLines = append(cleanLines, line)
 		}
-		return strings.TrimSuffix(sb.String(), "\n"), nil
+	}
+	if len(cleanLines) > 0 {
+		result = strings.Join(cleanLines, "\n")
+	} else {
+		// No bullet points at all — model ignored format, discard
+		return "", nil
+	}
+		result = strings.Join(cleanLines, "\n")
 	}
 
 	return result, nil
