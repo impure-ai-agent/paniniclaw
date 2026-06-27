@@ -24,6 +24,7 @@ type Job struct {
 
 type LLMClient interface {
 	Chat(ctx context.Context, task string, model string, onMessage func(string)) (string, error)
+	ChatJSON(ctx context.Context, systemPrompt string) (string, error)
 }
 
 type MessageSender func(chatId, text string)

@@ -192,7 +192,7 @@ JSON:`, transcript.String())
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	result, err := m.llm.Chat(ctx, prompt, "", nil)
+	result, err := m.llm.ChatJSON(ctx, prompt)
 	if err != nil {
 		return "", fmt.Errorf("summarization failed: %w", err)
 	}

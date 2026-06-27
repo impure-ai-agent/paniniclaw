@@ -35,13 +35,18 @@ type providerConfig struct {
 	AllowFallbacks *bool    `json:"allow_fallbacks,omitempty"`
 }
 
+type responseFormatConfig struct {
+	Type string `json:"type"`
+}
+
 type chatRequest struct {
-	Model     string              `json:"model"`
-	Messages  []utils.ChatMessage `json:"messages"`
-	Reasoning *reasoningConfig    `json:"reasoning,omitempty"`
-	MaxTokens int                 `json:"max_tokens,omitempty"`
-	Tools     []Tool              `json:"tools,omitempty"`
-	Provider  *providerConfig     `json:"provider,omitempty"` // Added for provider configuration
+	Model          string               `json:"model"`
+	Messages       []utils.ChatMessage  `json:"messages"`
+	Reasoning      *reasoningConfig     `json:"reasoning,omitempty"`
+	ResponseFormat *responseFormatConfig `json:"response_format,omitempty"`
+	MaxTokens      int                  `json:"max_tokens,omitempty"`
+	Tools          []Tool               `json:"tools,omitempty"`
+	Provider       *providerConfig      `json:"provider,omitempty"` // Added for provider configuration
 }
 
 type chatResponse struct {
@@ -486,4 +491,34 @@ func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string, model string
 	}
 
 	return "", fmt.Errorf("exceeded max tool call iterations")
+}
+func (o *OpenRouter) ChatJSON(ctx context.Context, systemPrompt string) (string, error) {
+	messages := []utils.ChatMessage{
+		{
+			Role:    "system",
+			Content: systemPrompt,
+		},
+	}
+
+	reqBody := chatRequest{
+		Model:    o.model,
+		Messages: messages,
+		Reasoning: &reasoningConfig{
+			Effort: "none",
+		},
+		ResponseFormat: &responseFormatConfig{
+			Type: "json_object",
+		},
+		MaxTokens: 2_000,
+	}
+
+	responseMsg, err := o.rawChat(ctx, reqBody)
+	if err != nil {
+		return "", err
+	}
+
+	if contentStr, ok := responseMsg.Content.(string); ok {
+		return contentStr, nil
+	}
+	return "", fmt.Errorf("unexpected response type")
 }
