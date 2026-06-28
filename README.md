@@ -91,7 +91,7 @@ You can cancel a running task with `/end_task`.
 You can backup files using this command:
 
 ```
-rsync -avz -e "ssh -i <ssh_key_path>" root@<server_ip>:/home/paniniclaw/paniniclaw/{tasks,notes,directives} ~/paniniclaw_backup/
+rsync -avz -e "ssh -i <ssh_key_path>" root@<server_ip>:/home/paniniclaw/paniniclaw/{tasks,notes,directives,memory} ~/paniniclaw_backup/
 ```
 
 Change root to the desired user and remove the `-e ...` part if not using a key file.
