@@ -194,7 +194,7 @@ JSON:`, transcript.String())
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	result, err := m.llm.Chat(ctx, prompt, "", nil)
+	result, err := m.llm.ChatJSON(ctx, prompt)
 	if err != nil {
 		return "", fmt.Errorf("summarization failed: %w", err)
 	}
@@ -204,36 +204,22 @@ JSON:`, transcript.String())
 	// Log raw result for debugging
 	log.Printf("[memory] Raw LLM result (first 200 chars): %s", result[:min(len(result), 200)])
 
-	// Try to find JSON in the response (handles markdown code blocks)
-	jsonStr := result
-	if idx := strings.Index(jsonStr, "{"); idx >= 0 {
-		if endIdx := strings.LastIndex(jsonStr, "}"); endIdx >= idx {
-			jsonStr = jsonStr[idx : endIdx+1]
-		}
-	}
-
 	// Try to parse as JSON
 	var parsed struct {
 		Points []string `json:"points"`
 	}
-	if err := json.Unmarshal([]byte(jsonStr), &parsed); err == nil {
+	if err := json.Unmarshal([]byte(result), &parsed); err == nil {
 		if len(parsed.Points) == 0 {
-			log.Printf("[memory] LLM returned empty points, nothing important")
 			return "", nil
 		}
 		var sb strings.Builder
 		for _, p := range parsed.Points {
 			sb.WriteString("- " + p + "\n")
 		}
-		formatted := strings.TrimSuffix(sb.String(), "\n")
-		log.Printf("[memory] Successfully parsed %d points from LLM", len(parsed.Points))
-		return formatted, nil
-	} else {
-		log.Printf("[memory] Failed to parse JSON from LLM response: %v", err)
-		log.Printf("[memory] Extracted JSON attempt: %s", jsonStr)
+		return strings.TrimSuffix(sb.String(), "\n"), nil
 	}
 
-	// If JSON parsing failed, treat as empty (nothing useful)
+	log.Printf("[memory] Failed to parse JSON from LLM response: %v", err)
 	return "", nil
 }
 
