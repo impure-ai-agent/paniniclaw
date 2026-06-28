@@ -144,42 +144,39 @@ func (s *Scheduler) runTask(name, prompt, model string) {
 
 	log.Printf("[scheduler] Sending LLM request for task %q", name)
 
-	msgCount := 0
 	result, err := s.client.Chat(ctx, prompt, model, func(msg string) {
-		msgCount++
-		var full string
-		if msgCount == 1 {
-			full = fmt.Sprintf("📋 Task %q:\n%s", name, msg)
-		} else {
-			full = fmt.Sprintf("📋 Task %q (continued):\n%s", name, msg)
-		}
-		if s.send != nil {
-			s.send(s.chatId, full)
-		}
+		// Intermediate messages are discarded; debrief is sent at the end
 	})
 	if err != nil {
 		// Check if this is an explicit task failure (via end_task with reason)
 		errStr := err.Error()
 		if strings.HasPrefix(errStr, "task failed: ") {
 			reason := strings.TrimPrefix(errStr, "task failed: ")
-			errMsg := fmt.Sprintf("❌ Task %q failed: %s", name, reason)
-			log.Printf("[scheduler] %s", errMsg)
+			debrief := fmt.Sprintf("❌ Task %q failed: %s", name, reason)
+			log.Printf("[scheduler] %s", debrief)
 			if s.send != nil {
-				s.send(s.chatId, errMsg)
+				s.send(s.chatId, debrief)
 			}
 		} else {
-			errMsg := fmt.Sprintf("⚠️ Task %q failed: %v", name, err)
-			log.Printf("[scheduler] %s", errMsg)
+			debrief := fmt.Sprintf("⚠️ Task %q error: %v", name, err)
+			log.Printf("[scheduler] %s", debrief)
 			if s.send != nil {
-				s.send(s.chatId, errMsg)
+				s.send(s.chatId, debrief)
 			}
 		}
 	} else {
-		log.Printf("[scheduler] Task %q completed", name)
-		if s.send != nil {
-			s.send(s.chatId, fmt.Sprintf("✅ Task %q completed.", name))
+		// Summarize into a brief debrief
+		debrief := fmt.Sprintf("✅ Task %q completed.", name)
+		// Truncate result for debrief if needed
+		if len(result) > 500 {
+			debrief = fmt.Sprintf("✅ Task %q completed.\n\n%s...", name, result[:500])
+		} else if result != "" {
+			debrief = fmt.Sprintf("✅ Task %q completed.\n\n%s", name, result)
 		}
-		_ = result
+		log.Printf("[scheduler] %s", debrief)
+		if s.send != nil {
+			s.send(s.chatId, debrief)
+		}
 	}
 }
 
