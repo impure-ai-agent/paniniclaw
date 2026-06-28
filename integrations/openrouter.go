@@ -35,13 +35,18 @@ type providerConfig struct {
 	AllowFallbacks *bool    `json:"allow_fallbacks,omitempty"`
 }
 
+type responseFormatConfig struct {
+	Type string `json:"type"`
+}
+
 type chatRequest struct {
-	Model     string              `json:"model"`
-	Messages  []utils.ChatMessage `json:"messages"`
-	Reasoning *reasoningConfig    `json:"reasoning,omitempty"`
-	MaxTokens int                 `json:"max_tokens,omitempty"`
-	Tools     []Tool              `json:"tools,omitempty"`
-	Provider  *providerConfig     `json:"provider,omitempty"` // Added for provider configuration
+	Model          string               `json:"model"`
+	Messages       []utils.ChatMessage  `json:"messages"`
+	Reasoning      *reasoningConfig     `json:"reasoning,omitempty"`
+	ResponseFormat *responseFormatConfig `json:"response_format,omitempty"`
+	MaxTokens      int                  `json:"max_tokens,omitempty"`
+	Tools          []Tool               `json:"tools,omitempty"`
+	Provider       *providerConfig      `json:"provider,omitempty"` // Added for provider configuration
 }
 
 type chatResponse struct {
@@ -50,7 +55,7 @@ type chatResponse struct {
 	} `json:"choices"`
 }
 
-func makeSystemMessage(user utils.User) (utils.ChatMessage, error) {
+func makeSystemMessage(user utils.User, chatId string) (utils.ChatMessage, error) {
 	soulBytes, err := ensureFileExists("directives/core.md", `You are PaniniClaw, a helpful AI assistant that also makes paninis.
 - You are running on the paniniclaw service
 - When responding to user requests, briefly explain what command/action you're about to perform. For example: "I'll search the web for X", "I'll check git status", etc. This helps avoid confusion about what's happening
@@ -87,9 +92,21 @@ func makeSystemMessage(user utils.User) (utils.ChatMessage, error) {
 		return utils.ChatMessage{}, err
 	}
 
+	// Load memory file for this conversation if it exists
+	provider := "telegram"
+	if len(user.Connections) > 0 {
+		provider = user.Connections[0].Provider
+	}
+	memoryPath := fmt.Sprintf("memory/%s_%s.md", provider, chatId)
+	memoryBytes, memErr := os.ReadFile(memoryPath)
+	var memoryContent string
+	if memErr == nil {
+		memoryContent = string(memoryBytes)
+	}
+	
 	return utils.ChatMessage{
 		Role:    "system",
-		Content: fmt.Sprintf("directives/core.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s\n\nnotes/general.md: %s\n\nnotes/user%s.md: %s\n", soulBytes, telegramBytes, userJson, generalBytes, strconv.Itoa(user.Id), userNotesBytes),
+		Content: fmt.Sprintf("directives/core.md: %s\n\ndirectives/telegram.md: %s\n\nuser: %s\n\nnotes/general.md: %s\n\nnotes/user%s.md: %s\n\nmemory/%s_%s.md: %s\n", soulBytes, telegramBytes, userJson, generalBytes, strconv.Itoa(user.Id), userNotesBytes, provider, chatId, memoryContent),
 	}, nil
 }
 
@@ -117,7 +134,7 @@ func ensureFileExists(path string, defaultContent string) ([]byte, error) {
 }
 
 func (o *OpenRouter) ChatFromMessages(ctx context.Context, messages []utils.Message, user utils.User, db *utils.Database, chatId string) (string, error) {
-	systemMessage, err := makeSystemMessage(user)
+	systemMessage, err := makeSystemMessage(user, chatId)
 	if err != nil {
 		return "", err
 	}
@@ -486,4 +503,34 @@ func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string, model string
 	}
 
 	return "", fmt.Errorf("exceeded max tool call iterations")
+}
+func (o *OpenRouter) ChatJSON(ctx context.Context, systemPrompt string) (string, error) {
+	messages := []utils.ChatMessage{
+		{
+			Role:    "system",
+			Content: systemPrompt,
+		},
+	}
+
+	reqBody := chatRequest{
+		Model:    o.model,
+		Messages: messages,
+		Reasoning: &reasoningConfig{
+			Effort: "none",
+		},
+		ResponseFormat: &responseFormatConfig{
+			Type: "json_object",
+		},
+		MaxTokens: 2_000,
+	}
+
+	responseMsg, err := o.rawChat(ctx, reqBody)
+	if err != nil {
+		return "", err
+	}
+
+	if contentStr, ok := responseMsg.Content.(string); ok {
+		return contentStr, nil
+	}
+	return "", fmt.Errorf("unexpected response type")
 }

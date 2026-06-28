@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -179,27 +180,38 @@ func (m *MemoryManager) summarizeConversation(messages []Message) (string, error
 
 	prompt := fmt.Sprintf(`Review the following conversation and extract any important information the user shared. This could include: preferences, plans, technical details, decisions, personal information, questions they want answered later, or anything worth remembering.
 
-If nothing important was discussed (just casual chat, greetings, etc.), respond with exactly: NOTHING_IMPORTANT
+If nothing important was discussed (just casual chat, greetings, etc.), respond with exactly: {"points": []}
 
-Otherwise, list the key points as bullet points. Write in third person about "the user". Keep each point brief.
+Otherwise, respond with a JSON object containing a single key "points" with an array of strings, one per key point. Write in third person about "the user". Keep each point brief. Do not include any introductory text, explanations, or commentary — just the JSON.
 
 Conversation:
 %s
 
-Key points:`, transcript.String())
+JSON:`, transcript.String())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	result, err := m.llm.Chat(ctx, prompt, "", nil)
+	result, err := m.llm.ChatJSON(ctx, prompt)
 	if err != nil {
 		return "", fmt.Errorf("summarization failed: %w", err)
 	}
 
 	result = strings.TrimSpace(result)
 
-	if result == "NOTHING_IMPORTANT" {
-		return "", nil
+	// Try to parse as JSON
+	var parsed struct {
+		Points []string `json:"points"`
+	}
+	if err := json.Unmarshal([]byte(result), &parsed); err == nil {
+		if len(parsed.Points) == 0 {
+			return "", nil
+		}
+		var sb strings.Builder
+		for _, p := range parsed.Points {
+			sb.WriteString("- " + p + "\n")
+		}
+		return strings.TrimSuffix(sb.String(), "\n"), nil
 	}
 
 	return result, nil
