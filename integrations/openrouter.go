@@ -413,8 +413,14 @@ func (o *OpenRouter) Chat(ctx context.Context, systemPrompt string, model string
 
 		messages = append(messages, responseMsg)
 
-		// Don't send intermediate text to user during task execution
-		// Final debrief is sent by the scheduler instead
+		// Send intermediate text to user if present
+		if responseMsg.Content != "" {
+			if contentStr, ok := responseMsg.Content.(string); ok {
+				if onMessage != nil {
+					onMessage(contentStr)
+				}
+			}
+		}
 
 		if len(responseMsg.ToolCalls) == 0 {
 			content, ok := responseMsg.Content.(string)

@@ -20,6 +20,7 @@ type Job struct {
 	Schedule string `json:"schedule" toml:"schedule"`
 	Name     string `json:"name" toml:"name"`
 	Task     string `json:"task" toml:"task"`
+	Notify   bool   `json:"notify,omitempty" toml:"notify,omitempty"`
 }
 
 type LLMClient interface {
@@ -132,11 +133,11 @@ func (s *Scheduler) RunTaskByName(name string) error {
 	}
 	s.setTask(displayName)
 
-	go s.runTask(displayName, job.Task, job.Model)
+	go s.runTask(displayName, job.Task, job.Model, job.Notify)
 	return nil
 }
 
-func (s *Scheduler) runTask(name, prompt, model string) {
+func (s *Scheduler) runTask(name, prompt, model string, notify bool) {
 	defer s.EndTask()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -144,8 +145,20 @@ func (s *Scheduler) runTask(name, prompt, model string) {
 
 	log.Printf("[scheduler] Sending LLM request for task %q", name)
 
+	msgCount := 0
 	result, err := s.client.Chat(ctx, prompt, model, func(msg string) {
-		// Intermediate messages are discarded; debrief is sent at the end
+		if notify {
+			msgCount++
+			var full string
+			if msgCount == 1 {
+				full = fmt.Sprintf("📋 Task %q:\n%s", name, msg)
+			} else {
+				full = fmt.Sprintf("📋 Task %q (continued):\n%s", name, msg)
+			}
+			if s.send != nil {
+				s.send(s.chatId, full)
+			}
+		}
 	})
 	if err != nil {
 		// Check if this is an explicit task failure (via end_task with reason)
@@ -237,7 +250,7 @@ func (s *Scheduler) checkAndRun() {
 			}
 			s.setTask(displayName)
 
-			go s.runTask(displayName, job.Task, job.Model)
+			go s.runTask(displayName, job.Task, job.Model, job.Notify)
 		}
 
 		s.mu.Lock()
